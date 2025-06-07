@@ -23,12 +23,12 @@ public class StudentController {
     @Autowired
     private StudentService studentService;// 学生服务层
 
-    // zza
+
     @GetMapping("/getCourseStatus")
     public Integer getCourseStatus(@RequestParam Integer userId,
                                    @RequestParam Integer courseId) throws SQLException {
 
-            // 根据 userId 和 courseId 查询数据库判断是否已添加培养方案
+            // 这里你可以根据 userId 和 courseId 查询数据库判断是否已添加培养方案
             boolean isEnrolled = studentService.courseInCurriculum(userId, courseId);
             return isEnrolled ? 1 : 0;
     }
@@ -99,8 +99,8 @@ public class StudentController {
         }
     }
 
-    // szx
-    @GetMapping("/{user_id}/getSelectionTime")
+
+    @GetMapping("/getSelectionTime")
     public Map<String, String> getSelectionTime() throws IOException {
         String filePath = "selectionTime.txt";
         List<String> lines = new ArrayList<>();
@@ -124,7 +124,6 @@ public class StudentController {
         return result;
     }
 
-    // zza
     @PostMapping("removePersonalCurriculum")
     public ResponseEntity<String> removePersonalCurriculum(@RequestBody CurriculumRequest request) {
         // @RequestBody注解用来绑定通过http请求中application/json类型上传的数据
@@ -147,7 +146,6 @@ public class StudentController {
         }
     }
 
-    // zza
     @PostMapping("/setPersonalCurriculum")
     public ResponseEntity<String> setPersonalCurriculum(@RequestBody CurriculumRequest request) {
         // @RequestBody注解用来绑定通过http请求中application/json类型上传的数据
@@ -170,7 +168,6 @@ public class StudentController {
         }
     }
 
-    // szx
     @GetMapping("/{user_id}/chooseCourse/{sec_id}")
     public ResponseEntity<String> chooseCourse(@PathVariable int user_id, @PathVariable int sec_id) {
         // 通过网页表单提交的json信息，学生选课
@@ -182,7 +179,6 @@ public class StudentController {
         else return ResponseEntity.status(500).body(result);
     }
 
-    // szx
     @GetMapping("/{user_id}/dropCourse/{sec_id}")
     public ResponseEntity<String> dropCourse(@PathVariable int user_id, @PathVariable int sec_id) {
         // 通过网页表单提交的json信息，学生退课
@@ -193,7 +189,6 @@ public class StudentController {
         else return ResponseEntity.status(500).body(result);
     }
 
-    // lmt
     @GetMapping("/{user_id}/CourseResultS")
     public ResponseEntity<List<Section_>> courseSearch(
             @PathVariable("user_id") String studentId,
@@ -209,16 +204,15 @@ public class StudentController {
         }
     }
 
-    // lmt
     @GetMapping("/{user_id}/CourseTableS")
     public ResponseEntity<TimetableResponse> getCourseTable(
             @PathVariable ("user_id") String studentId,
-            @RequestParam(defaultValue = "") Integer courseYear,
-            @RequestParam(defaultValue = "") String courseSemester) {
+            @RequestParam(required = false, defaultValue = "2025") Integer year,
+            @RequestParam(defaultValue = "夏") String semester) {
 
         try {
             // 调用 Service 层获取课表数据
-            TimetableResponse response = studentService.getStudentTimetable(studentId, courseYear, courseSemester);
+            TimetableResponse response = studentService.getStudentTimetable(studentId, year, semester);
 
             // 确保至少返回空数据结构，而非null
             if (response.getTimetable() == null) {

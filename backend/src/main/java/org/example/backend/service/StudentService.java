@@ -32,9 +32,7 @@ public class StudentService {
             System.out.println(student_id+" "+sec_id);
             TakesMapper takesMapper = new TakesMapper();
             SectionMapper sectionMapper = new SectionMapper();
-            StudentMapper studentMapper = new StudentMapper();
             Section new_section= sectionMapper.selectSection(sec_id);
-            if(!studentMapper.isStudentExist(student_id)) return "学生不存在"; // 检查学生是否存在
             //对所有课程进行判断
             List<Takes> Takes_list= takesMapper.selectAll();
             for(Takes takes:Takes_list) {

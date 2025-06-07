@@ -42,10 +42,10 @@ public class CourseMapper {
     }
 
     public List<Integer> getCourseIdsByTitle(String courseTitle) {
-        String sql = "SELECT course_id FROM course WHERE title LIKE ?";
+        String sql = "SELECT course_id FROM course WHERE title = ?";
         try {
             PreparedStatement stmt = connection.prepareStatement(sql);
-            stmt.setString(1, "%" + courseTitle + "%");
+            stmt.setString(1, courseTitle);
             ResultSet rs = stmt.executeQuery();
             List<Integer> courseIds = new ArrayList<>();
             while (rs.next()) {
