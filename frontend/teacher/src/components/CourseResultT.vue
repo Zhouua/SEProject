@@ -150,7 +150,7 @@ export default {
           courseSemester: backendSearchSemester, // 使用转换后的学期值
         });
 
-        const response = await fetch(`http://localhost:8080/teacher/${this.teacherId}/CourseResultT?${queryParams}`);
+        const response = await fetch(`http://localhost:8083/teacher/${this.teacherId}/CourseResultT?${queryParams}`);
 
         if (!response.ok) {
           // HTTP 状态码不在 200-299 范围
@@ -207,7 +207,7 @@ export default {
           year: this.searchedYear,
           semester: backendSearchSemesterForTimetable,
         });
-        const response = await fetch(`http://localhost:8080/teacher/${this.teacherId}/timetable?${queryParams}`);
+        const response = await fetch(`http://localhost:8083/teacher/${this.teacherId}/timetable?${queryParams}`);
 
         // ... 后续逻辑保持不变 ...
 

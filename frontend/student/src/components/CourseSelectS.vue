@@ -107,7 +107,7 @@ export default {
     async getselectionTime(){
       // 1. 先获取选课时间
       try {
-        const response = await fetch(`http://localhost:8080/student/${this.userId}/getSelectionTime`);
+        const response = await fetch(`http://localhost:8083/student/${this.userId}/getSelectionTime`);
         if (!response.ok) throw new Error('获取选课时间失败');
         const times = await response.json();
         // 将字符串转成Date对象
@@ -139,7 +139,7 @@ export default {
     async queryCourseDatabase(courseName, college, teacher) {
       try {
         const params = new URLSearchParams();
-        const response = await fetch(`http://localhost:8080/student/${this.userId}/getSections?${params.toString()}`);
+        const response = await fetch(`http://localhost:8083/student/${this.userId}/getSections?${params.toString()}`);
         if (!response.ok) throw new Error('网络错误');
         const data = await response.json();
         // 先映射后筛选
@@ -183,7 +183,7 @@ export default {
       if (confirmSelection) {
         try {
           const params = new URLSearchParams();
-          const response = await fetch(`http://localhost:8080/student/${this.userId}/chooseCourse/${courseId}?${params.toString()}`);
+          const response = await fetch(`http://localhost:8083/student/${this.userId}/chooseCourse/${courseId}?${params.toString()}`);
           if (!response.ok){
             // 先拿到后端返回的字符串
             const errorMsg = await response.text();
@@ -202,7 +202,7 @@ export default {
       if (confirmDrop) {
         try {
           const params = new URLSearchParams();
-          const response = await fetch(`http://localhost:8080/student/${this.userId}/dropCourse/${courseId}?${params.toString()}`);
+          const response = await fetch(`http://localhost:8083/student/${this.userId}/dropCourse/${courseId}?${params.toString()}`);
           if (!response.ok){
             // 先拿到后端返回的字符串
             const errorMsg = await response.text();

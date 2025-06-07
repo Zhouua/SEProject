@@ -21,7 +21,7 @@ const routes = [
         component: CourseTableS
     },
     {
-        path: '/CourseSelectS',
+        path: '/CourseSelectS/:userId',
         name: 'CourseSelectS',
         component: CourseSelectS
     },

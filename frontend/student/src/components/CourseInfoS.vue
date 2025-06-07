@@ -73,7 +73,7 @@ export default {
     },
     async queryDatabase() {
       // 向后端请求所有课程信息
-      const response = await fetch('http://localhost:8080/student/getAllCourses'); // 路径请与后端保持一致
+      const response = await fetch('http://localhost:8083/student/getAllCourses'); // 路径请与后端保持一致
       if (!response.ok) throw new Error("后端接口错误");
       const data = await response.json();
       return data;

@@ -187,7 +187,7 @@ export default {
 
       try {
         // 发送请求
-        const response = await fetch(`http://localhost:8080/student/${this.userId}/CourseTableS?${params.toString()}`, {
+        const response = await fetch(`http://localhost:8083/student/${this.userId}/CourseTableS?${params.toString()}`, {
           method: 'GET',
           credentials: 'include',
           headers: {

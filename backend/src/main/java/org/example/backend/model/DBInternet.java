@@ -13,7 +13,7 @@ public class DBInternet {
         // 默认
         this.url = "jdbc:mysql://localhost:3306/inforsystem";
         this.user = "root";
-        this.password = "2018stan";
+        this.password = "zjh750722828";
     }
     public String getUrl() {
         return url;

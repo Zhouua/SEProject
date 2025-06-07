@@ -91,7 +91,7 @@ export default {
       if (this.searchCourseSemester) params.append('courseSemester', this.getEnglishSemester(this.searchCourseSemester));
 
       try {
-        const response = await fetch(`http://localhost:8080/student/${this.userId}/CourseResultS?${params.toString()}`, {
+        const response = await fetch(`http://localhost:8083/student/${this.userId}/CourseResultS?${params.toString()}`, {
           method: 'GET',
           credentials: 'include',
           headers: {

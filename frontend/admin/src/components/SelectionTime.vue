@@ -40,7 +40,7 @@ export default {
         alert('请填写完整的时间信息');
         return;
       }
-      const response = await fetch('http://localhost:8080/admin/SelectionTime',{
+      const response = await fetch('http://localhost:8083/admin/SelectionTime',{
         method: 'PUT',
         credentials: 'include',
         headers: {

@@ -100,7 +100,7 @@ public class StudentController {
     }
 
 
-    @GetMapping("/getSelectionTime")
+    @GetMapping("/{userId}/getSelectionTime")
     public Map<String, String> getSelectionTime() throws IOException {
         String filePath = "selectionTime.txt";
         List<String> lines = new ArrayList<>();
@@ -207,12 +207,12 @@ public class StudentController {
     @GetMapping("/{user_id}/CourseTableS")
     public ResponseEntity<TimetableResponse> getCourseTable(
             @PathVariable ("user_id") String studentId,
-            @RequestParam(required = false, defaultValue = "2025") Integer year,
-            @RequestParam(defaultValue = "夏") String semester) {
+            @RequestParam(defaultValue = "") Integer courseYear,
+            @RequestParam(defaultValue = "") String courseSemester) {
 
         try {
             // 调用 Service 层获取课表数据
-            TimetableResponse response = studentService.getStudentTimetable(studentId, year, semester);
+            TimetableResponse response = studentService.getStudentTimetable(studentId, courseYear, courseSemester);
 
             // 确保至少返回空数据结构，而非null
             if (response.getTimetable() == null) {
@@ -232,7 +232,6 @@ public class StudentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
 
     public static class Section_ {
         private String courseId;

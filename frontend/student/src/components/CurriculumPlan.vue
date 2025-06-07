@@ -14,7 +14,7 @@
         </div>
         <div class="button-container">
           <button @click="showCurriculum" class="confirm-btn">我的培养方案</button>
-          <button @click="toggleActionMenu" class="confirm-btn" style="margin-top: 10px;">确认</button>
+          <button @click="toggleActionMenu" class="confirm-btn" style="margin-top: 10px;">确认操作</button>
         </div>
       </div>
       <div v-if="showCurriculumModal" class="modal-overlay">
@@ -117,7 +117,7 @@ export default {
   methods: {
     async fetchCourses() {
       try {
-        const response = await fetch('http://localhost:8080/student/getAllCourses');
+        const response = await fetch('http://localhost:8083/student/getAllCourses');
         if (!response.ok) throw new Error('网络响应失败');
         let data = await response.json();
         
@@ -182,7 +182,7 @@ export default {
 
     async confirmSelection() {
       try {
-        const response = await fetch('http://localhost:8080/student/setPersonalCurriculum', {
+        const response = await fetch('http://localhost:8083/student/setPersonalCurriculum', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -209,7 +209,7 @@ export default {
 
     async confirmRemove() {
       try {
-        const response = await fetch('http://localhost:8080/student/removePersonalCurriculum', {
+        const response = await fetch('http://localhost:8083/student/removePersonalCurriculum', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -237,7 +237,7 @@ export default {
     async getCourseStatus(course) {
       if (!this.userId) return '未知状态'; // Prevent API call if userId is not set
       try {
-        const response = await fetch(`http://localhost:8080/student/getCourseStatus?userId=${this.userId}&courseId=${course.courseId}`);
+        const response = await fetch(`http://localhost:8083/student/getCourseStatus?userId=${this.userId}&courseId=${course.courseId}`);
         if (!response.ok) throw new Error('获取课程状态失败');
         const result = await response.json();
         return result === 1 ? '已添加' : '待添加';

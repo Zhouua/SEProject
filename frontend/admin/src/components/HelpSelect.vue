@@ -118,7 +118,7 @@ export default {
       if (this.searchStudentName) params.append('studentName', this.searchStudentName);
 
       try {
-        const response = await fetch(`http://localhost:8080/admin/HelpSelect/students?${params.toString()}`, {
+        const response = await fetch(`http://localhost:8083/admin/HelpSelect/students?${params.toString()}`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -164,7 +164,7 @@ export default {
       if (this.searchCourseInstructor) params.append('courseInstructor', this.searchCourseInstructor);
 
       try {
-        const response = await fetch(`http://localhost:8080/admin/HelpSelect/courses?${params.toString()}`, {
+        const response = await fetch(`http://localhost:8083/admin/HelpSelect/courses?${params.toString()}`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -190,7 +190,7 @@ export default {
             alert('未选中课程');
             return;
           }
-          const response = await fetch('http://localhost:8080/admin/HelpSelect',{
+          const response = await fetch('http://localhost:8083/admin/HelpSelect',{
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -218,7 +218,7 @@ export default {
             if (this.searchCourseName) params.append('courseName', this.searchCourseName);
             if (this.searchCourseInstructor) params.append('courseInstructor', this.searchCourseInstructor);
 
-            const response = await fetch(`http://localhost:8080/admin/HelpSelect/courses?${params.toString()}`, {
+            const response = await fetch(`http://localhost:8083/admin/HelpSelect/courses?${params.toString()}`, {
               method: 'GET',
               credentials: 'include',
               headers: {
