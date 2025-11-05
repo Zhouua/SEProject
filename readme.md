@@ -13,7 +13,9 @@ git clone https://github.com/Zhouua/SEProject.git
 ### 前端
 
 ```python
-npm install ...
+cd frontend
+npm install
+npm start dev
 ```
 
 
