@@ -1,15 +1,5 @@
 <template>
   <div class="sidebar">
-    <div class="logo">
-      <div class="logo-icon">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="#4CAF50"/>
-          <path d="M16 8L22 16L16 24L10 16L16 8Z" fill="white"/>
-        </svg>
-      </div>
-      <span class="logo-text">Trade0</span>
-    </div>
-
     <nav class="nav-menu">
       <router-link 
         v-for="item in menuItems" 
@@ -45,7 +35,6 @@ import { useI18n } from 'vue-i18n'
 import { 
   Grid, 
   TrendCharts, 
-  Wallet, 
   DataAnalysis,
   Tickets,
   CirclePlus,
@@ -62,7 +51,6 @@ const { t } = useI18n()
 const menuItems = [
   { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
   { nameKey: 'sidebar.trade', path: '/trade', icon: TrendCharts },
-  { nameKey: 'sidebar.wallet', path: '/wallet', icon: Wallet },
   { nameKey: 'sidebar.markets', path: '/markets', icon: DataAnalysis },
   { nameKey: 'sidebar.transactions', path: '/transactions', icon: Tickets },
   { nameKey: 'sidebar.buyCrypto', path: '/buy-crypto', icon: CirclePlus },
@@ -78,30 +66,12 @@ const isActive = (path) => {
 
 <style lang="scss" scoped>
 .sidebar {
-  width: 240px;
+  width: 100%;
+  height: 100%;
   background-color: #ffffff;
-  border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  padding: 24px 0;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  padding: 0 24px 32px;
-  gap: 12px;
-  
-  .logo-icon {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a1a;
-  }
+  padding: 16px 0;
 }
 
 .nav-menu {

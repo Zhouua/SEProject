@@ -1,10 +1,31 @@
 <template>
   <div class="header">
     <div class="header-left">
+      <!-- 侧边栏切换按钮 - 优雅的汉堡菜单 -->
+      <div class="menu-toggle" @click="toggleSidebar">
+        <div class="hamburger" :class="{ active: sidebarOpen }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+      
       <el-icon class="back-icon" v-if="showBackButton" @click="goBack">
         <ArrowLeft />
       </el-icon>
-      <h1 class="page-title">{{ pageTitle }}</h1>
+      
+      <router-link to="/welcome" class="logo-section">
+        <div class="logo-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#4CAF50"/>
+            <path d="M16 8L22 16L16 24L10 16L16 8Z" fill="white"/>
+          </svg>
+        </div>
+        <div class="page-title-section">
+          <h1 class="page-title">Trade0</h1>
+          <p class="page-subtitle">Uniswap V3 vs Binance</p>
+        </div>
+      </router-link>
     </div>
 
     <div class="header-center">
@@ -79,7 +100,18 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Search, Bell, SuccessFilled, WarningFilled, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowLeft, Search, Bell, SuccessFilled, WarningFilled, InfoFilled, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+
+// 定义 props
+const props = defineProps({
+  sidebarOpen: {
+    type: Boolean,
+    default: true
+  }
+})
+
+// 定义 emit
+const emit = defineEmits(['toggle-sidebar'])
 
 const route = useRoute()
 const router = useRouter()
@@ -88,6 +120,11 @@ const { t, locale } = useI18n()
 const searchQuery = ref('')
 const hasNotifications = ref(true)
 const showNotificationDialog = ref(false)
+
+// 切换侧边栏
+const toggleSidebar = () => {
+  emit('toggle-sidebar')
+}
 
 // 模拟通知数据
 const notifications = ref([
@@ -124,15 +161,6 @@ const notifications = ref([
     read: true
   }
 ])
-
-const pageTitle = computed(() => {
-  const key = route.path.replace('/', '')
-  if (route.path.startsWith('/crypto/')) {
-    return t('routes.cryptoDetails')
-  }
-  const routeKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-  return t(`routes.${routeKey}`) || 'TradoX'
-})
 
 const showBackButton = computed(() => {
   return route.path.startsWith('/crypto/') || route.path === '/assets'
@@ -211,16 +239,80 @@ const formatTime = (time) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
+  height: 100px;
   padding: 0 32px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(224, 224, 224, 0.5);
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 8px;
+    
+    .hamburger {
+      width: 24px;
+      height: 18px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      
+      span {
+        display: block;
+        height: 2px;
+        width: 100%;
+        background-color: #4CAF50;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+        
+        &:nth-child(1) {
+          transform-origin: left center;
+        }
+        
+        &:nth-child(2) {
+          transform-origin: center center;
+        }
+        
+        &:nth-child(3) {
+          transform-origin: left center;
+        }
+      }
+      
+      &.active {
+        span {
+          &:nth-child(1) {
+            transform: rotate(45deg) translateY(-1px);
+          }
+          
+          &:nth-child(2) {
+            opacity: 0;
+            transform: scaleX(0);
+          }
+          
+          &:nth-child(3) {
+            transform: rotate(-45deg) translateY(1px);
+          }
+        }
+      }
+    }
+    
+    &:hover {
+      .hamburger span {
+        background-color: #66BB6A;
+      }
+    }
+  }
   
   .back-icon {
     font-size: 24px;
@@ -232,11 +324,39 @@ const formatTime = (time) => {
     }
   }
   
-  .page-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin: 0;
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.3s;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+    
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .page-title-section {
+      .page-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+        line-height: 1.2;
+      }
+      
+      .page-subtitle {
+        font-size: 12px;
+        color: #4CAF50;
+        margin: 4px 0 0 0;
+        font-weight: 600;
+      }
+    }
   }
 }
 
@@ -286,10 +406,10 @@ const formatTime = (time) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #2C2C2C;
+  background-color: #4CAF50;
   border-radius: 50%;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
   
   .el-icon {
     font-size: 20px;
@@ -297,7 +417,8 @@ const formatTime = (time) => {
   }
   
   &:hover {
-    background-color: #3C3C3C;
+    background-color: #66BB6A;
+    transform: scale(1.05);
   }
   
   .notification-badge {

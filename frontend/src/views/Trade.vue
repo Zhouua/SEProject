@@ -434,6 +434,18 @@ const initCandlestickChart = () => {
   background: white;
   border-radius: 16px;
   overflow: hidden;
+  animation: fadeInPage 0.8s ease-out;
+}
+
+@keyframes fadeInPage {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .trade-grid {

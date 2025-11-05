@@ -4,6 +4,15 @@ import Layout from '@/components/layout/Layout.vue'
 const routes = [
   {
     path: '/',
+    redirect: '/welcome'
+  },
+  {
+    path: '/welcome',
+    name: 'Welcome',
+    component: () => import('@/views/Welcome.vue')
+  },
+  {
+    path: '/',
     component: Layout,
     redirect: '/dashboard',
     children: [
@@ -16,11 +25,6 @@ const routes = [
         path: 'trade',
         name: 'Trade',
         component: () => import('@/views/Trade.vue')
-      },
-      {
-        path: 'wallet',
-        name: 'Wallet',
-        component: () => import('@/views/Wallet.vue')
       },
       {
         path: 'markets',
