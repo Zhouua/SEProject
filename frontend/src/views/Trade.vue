@@ -18,7 +18,7 @@
               <div class="stat-label">${{ priceData.current.toLocaleString() }}</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">24h Change</div>
+              <div class="stat-label">{{ t('trade.change24h') }}</div>
               <div class="stat-value" :class="priceData.change24h >= 0 ? 'text-up' : 'text-down'">
                 <el-icon class="change-icon">
                   <CaretTop v-if="priceData.change24h >= 0" />
@@ -28,7 +28,7 @@
               </div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">24h High</div>
+              <div class="stat-label">{{ t('trade.high24h') }}</div>
               <div class="stat-value" :class="priceData.high24h >= 0 ? 'text-up' : 'text-down'">
                 <el-icon class="change-icon">
                   <CaretTop v-if="priceData.high24h >= 0" />
@@ -38,7 +38,7 @@
               </div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">24h Low</div>
+              <div class="stat-label">{{ t('trade.low24h') }}</div>
               <div class="stat-value" :class="priceData.low24h >= 0 ? 'text-down' : 'text-down'">
                 <el-icon class="change-icon">
                   <CaretBottom />
@@ -47,11 +47,11 @@
               </div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">24h Volume (BTC)</div>
+              <div class="stat-label">{{ t('trade.volume24hBTC') }}</div>
               <div class="stat-value">{{ priceData.volumeBTC }}</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">24h Volume (USD)</div>
+              <div class="stat-label">{{ t('trade.volume24hUSD') }}</div>
               <div class="stat-value">${{ priceData.volumeUSD }}</div>
             </div>
           </div>
@@ -63,13 +63,13 @@
         <div class="chart-toolbar">
           <div class="chart-tabs">
             <button 
-              v-for="tab in chartTabs" 
+              v-for="(tab, index) in chartTabs" 
               :key="tab"
               class="chart-tab"
               :class="{ active: selectedChartTab === tab }"
               @click="selectedChartTab = tab"
             >
-              {{ tab }}
+              {{ t(chartTabKeys[index]) }}
             </button>
           </div>
           
@@ -90,11 +90,11 @@
         <div class="price-data-row">
           <div class="date-info">2025/08/22</div>
           <div class="ohlc-data">
-            <span class="data-item">Open <strong>${{ ohlcData.open.toLocaleString() }}</strong></span>
-            <span class="data-item">High <strong class="text-up">${{ ohlcData.high.toLocaleString() }}</strong></span>
-            <span class="data-item">Low <strong class="text-down">${{ ohlcData.low.toLocaleString() }}</strong></span>
-            <span class="data-item">Close <strong>${{ ohlcData.close.toLocaleString() }}</strong></span>
-            <span class="data-item">Change <strong :class="ohlcData.change >= 0 ? 'text-up' : 'text-down'">{{ ohlcData.change }}%</strong></span>
+            <span class="data-item">{{ t('trade.open') }} <strong>${{ ohlcData.open.toLocaleString() }}</strong></span>
+            <span class="data-item">{{ t('trade.high') }} <strong class="text-up">${{ ohlcData.high.toLocaleString() }}</strong></span>
+            <span class="data-item">{{ t('trade.low') }} <strong class="text-down">${{ ohlcData.low.toLocaleString() }}</strong></span>
+            <span class="data-item">{{ t('trade.close') }} <strong>${{ ohlcData.close.toLocaleString() }}</strong></span>
+            <span class="data-item">{{ t('trade.change') }} <strong :class="ohlcData.change >= 0 ? 'text-up' : 'text-down'">{{ ohlcData.change }}%</strong></span>
           </div>
         </div>
 
@@ -106,13 +106,13 @@
         <!-- 交易类型选择 -->
         <div class="order-type-tabs">
           <button 
-            v-for="type in orderTypes" 
+            v-for="(type, index) in orderTypes" 
             :key="type"
             class="order-type-tab"
             :class="{ active: selectedOrderType === type }"
             @click="selectedOrderType = type"
           >
-            {{ type }}
+            {{ t(orderTypeKeys[index]) }}
           </button>
         </div>
 
@@ -120,20 +120,20 @@
         <div class="order-form-section">
           <div class="order-tabs">
             <button 
-              v-for="tab in ['Market', 'Limit', 'Stop Limit']" 
+              v-for="(tab, index) in ['Market', 'Limit', 'Stop Limit']" 
               :key="tab"
               class="order-tab"
               :class="{ active: selectedOrderTab === tab }"
               @click="selectedOrderTab = tab"
             >
-              {{ tab }}
+              {{ t(orderTabKeys[index]) }}
             </button>
           </div>
 
           <div class="order-inputs">
             <div class="input-row">
               <div class="input-group">
-                <label>Stop</label>
+                <label>{{ t('trade.stop') }}</label>
                 <div class="input-wrapper">
                   <img src="https://flagcdn.com/w40/us.png" class="currency-icon" />
                   <span class="currency-label">USDT</span>
@@ -143,7 +143,7 @@
               </div>
               
               <div class="input-group">
-                <label>Stop</label>
+                <label>{{ t('trade.stop') }}</label>
                 <div class="input-wrapper">
                   <img src="https://flagcdn.com/w40/us.png" class="currency-icon" />
                   <span class="currency-label">USDT</span>
@@ -155,7 +155,7 @@
 
             <div class="input-row">
               <div class="input-group">
-                <label>Limit</label>
+                <label>{{ t('trade.limit') }}</label>
                 <div class="input-wrapper">
                   <img src="https://flagcdn.com/w40/us.png" class="currency-icon" />
                   <span class="currency-label">USDT</span>
@@ -165,7 +165,7 @@
               </div>
               
               <div class="input-group">
-                <label>Limit</label>
+                <label>{{ t('trade.limit') }}</label>
                 <div class="input-wrapper">
                   <img src="https://flagcdn.com/w40/us.png" class="currency-icon" />
                   <span class="currency-label">USDT</span>
@@ -181,12 +181,12 @@
       <!-- 右侧：订单簿 -->
       <div class="right-section">
         <div class="order-book">
-          <h3 class="order-book-title">Order Book</h3>
+          <h3 class="order-book-title">{{ t('trade.orderBook') }}</h3>
           
           <div class="order-book-header">
-            <div class="col">Price (USDT)</div>
-            <div class="col">Amount (BTC)</div>
-            <div class="col">Total (BTC)</div>
+            <div class="col">{{ t('trade.price') }} (USDT)</div>
+            <div class="col">{{ t('trade.amount') }} (BTC)</div>
+            <div class="col">{{ t('trade.total') }} (BTC)</div>
           </div>
 
           <!-- 卖单 -->
@@ -238,6 +238,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { 
   CaretTop, 
@@ -245,6 +246,8 @@ import {
   StarFilled,
   ArrowDown
 } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 // 价格数据
 const priceData = ref({
@@ -269,14 +272,17 @@ const ohlcData = ref({
 
 // 图表选项
 const chartTabs = ['Chart', 'Info', 'Trading Data', 'Trading Analysis', 'Square']
+const chartTabKeys = ['trade.chart', 'trade.info', 'trade.tradingData', 'trade.tradingAnalysis', 'trade.square']
 const selectedChartTab = ref('Chart')
 const timeRanges = ['1H', '4H', '12H', '1D', '1W', '1M']
 const selectedTimeRange = ref('1D')
 
 // 订单类型
 const orderTypes = ['Spot', 'Cross', 'Isolated', 'Grid']
+const orderTypeKeys = ['trade.spot', 'trade.cross', 'trade.isolated', 'trade.grid']
 const selectedOrderType = ref('Spot')
 const selectedOrderTab = ref('Stop Limit')
+const orderTabKeys = ['trade.market', 'trade.limit', 'trade.stopLimit']
 
 // 下单表单
 const orderForm = ref({

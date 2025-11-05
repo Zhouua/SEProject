@@ -7,7 +7,7 @@
           <path d="M16 8L22 16L16 24L10 16L16 8Z" fill="white"/>
         </svg>
       </div>
-      <span class="logo-text">TradoX</span>
+      <span class="logo-text">Trade0</span>
     </div>
 
     <nav class="nav-menu">
@@ -21,18 +21,18 @@
         <el-icon :size="16" class="nav-icon">
           <component :is="item.icon" />
         </el-icon>
-        <span class="nav-text">{{ item.name }}</span>
+        <span class="nav-text">{{ t(item.nameKey) }}</span>
       </router-link>
     </nav>
 
     <div class="sidebar-footer">
       <router-link to="/help" class="nav-item">
         <el-icon :size="16" class="nav-icon"><QuestionFilled /></el-icon>
-        <span class="nav-text">Help Center</span>
+        <span class="nav-text">{{ t('sidebar.helpCenter') }}</span>
       </router-link>
       <router-link to="/settings" class="nav-item">
         <el-icon :size="16" class="nav-icon"><Setting /></el-icon>
-        <span class="nav-text">Settings</span>
+        <span class="nav-text">{{ t('sidebar.settings') }}</span>
       </router-link>
     </div>
   </div>
@@ -41,6 +41,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { 
   Grid, 
   TrendCharts, 
@@ -56,17 +57,18 @@ import {
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const { t } = useI18n()
 
 const menuItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: Grid },
-  { name: 'Trade', path: '/trade', icon: TrendCharts },
-  { name: 'Wallet', path: '/wallet', icon: Wallet },
-  { name: 'Markets', path: '/markets', icon: DataAnalysis },
-  { name: 'Transactions', path: '/transactions', icon: Tickets },
-  { name: 'Buy Crypto', path: '/buy-crypto', icon: CirclePlus },
-  { name: 'Sell Crypto', path: '/sell-crypto', icon: Remove },
-  { name: 'Convert', path: '/convert', icon: RefreshRight },
-  { name: 'Referral', path: '/referral', icon: Present },
+  { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
+  { nameKey: 'sidebar.trade', path: '/trade', icon: TrendCharts },
+  { nameKey: 'sidebar.wallet', path: '/wallet', icon: Wallet },
+  { nameKey: 'sidebar.markets', path: '/markets', icon: DataAnalysis },
+  { nameKey: 'sidebar.transactions', path: '/transactions', icon: Tickets },
+  { nameKey: 'sidebar.buyCrypto', path: '/buy-crypto', icon: CirclePlus },
+  { nameKey: 'sidebar.sellCrypto', path: '/sell-crypto', icon: Remove },
+  { nameKey: 'sidebar.convert', path: '/convert', icon: RefreshRight },
+  { nameKey: 'sidebar.referral', path: '/referral', icon: Present },
 ]
 
 const isActive = (path) => {

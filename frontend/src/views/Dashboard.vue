@@ -7,7 +7,7 @@
         <div class="wallet-card">
           <div class="wallet-header">
             <div>
-              <p class="wallet-label">Wallet Balance</p>
+              <p class="wallet-label">{{ t('dashboard.walletBalance') }}</p>
               <h2 class="wallet-balance">${{ walletBalance.toLocaleString() }}</h2>
               <div class="wallet-change">
                 <el-icon class="change-icon" :class="walletChange >= 0 ? 'up' : 'down'">
@@ -15,7 +15,7 @@
                   <CaretBottom v-else />
                 </el-icon>
                 <span :class="walletChange >= 0 ? 'text-up' : 'text-down'">{{ walletChange }}%</span>
-                <span class="wallet-revenue">Your revenue is ${{ revenue.toLocaleString() }} this week</span>
+                <span class="wallet-revenue">{{ t('dashboard.revenue') }} ${{ revenue.toLocaleString() }}</span>
               </div>
             </div>
             <el-select v-model="selectedCurrency" class="currency-select">
@@ -30,39 +30,39 @@
           </div>
           
           <div class="wallet-actions">
-            <button class="btn btn-dark">Deposit</button>
-            <button class="btn btn-primary">Withdraw</button>
+            <button class="btn btn-dark">{{ t('dashboard.deposit') }}</button>
+            <button class="btn btn-primary">{{ t('dashboard.withdraw') }}</button>
           </div>
         </div>
 
         <!-- 快速操作 -->
         <div class="quick-actions">
-          <h3 class="section-title">Quick Actions</h3>
-          <p class="section-subtitle">Manage your crypto investments</p>
+          <h3 class="section-title">{{ t('dashboard.quickActions') }}</h3>
+          <p class="section-subtitle">{{ t('dashboard.manageInvestments') }}</p>
           <div class="action-buttons">
             <div class="action-btn" @click="$router.push('/buy-crypto')">
               <div class="action-icon buy">
                 <el-icon><Plus /></el-icon>
               </div>
-              <span>Buy</span>
+              <span>{{ t('dashboard.buy') }}</span>
             </div>
             <div class="action-btn" @click="$router.push('/sell-crypto')">
               <div class="action-icon sell">
                 <el-icon><Minus /></el-icon>
               </div>
-              <span>Sell</span>
+              <span>{{ t('dashboard.sell') }}</span>
             </div>
             <div class="action-btn">
               <div class="action-icon send">
                 <el-icon><TopRight /></el-icon>
               </div>
-              <span>Send</span>
+              <span>{{ t('dashboard.send') }}</span>
             </div>
             <div class="action-btn">
               <div class="action-icon receive">
                 <el-icon><BottomLeft /></el-icon>
               </div>
-              <span>Receive</span>
+              <span>{{ t('dashboard.receive') }}</span>
             </div>
           </div>
         </div>
@@ -70,18 +70,18 @@
         <!-- 涨幅榜 -->
         <div class="top-movers">
           <div class="section-header">
-            <h3 class="section-title">Top Movers</h3>
+            <h3 class="section-title">{{ t('dashboard.topMovers') }}</h3>
             <router-link to="/markets" class="more-link">
-              More
+              {{ t('dashboard.more') }}
               <el-icon><DArrowRight /></el-icon>
             </router-link>
           </div>
           <div class="movers-table">
             <div class="table-header">
               <div class="col">#</div>
-              <div class="col">Coin</div>
-              <div class="col">Price</div>
-              <div class="col">24h Volume</div>
+              <div class="col">{{ t('dashboard.coin') }}</div>
+              <div class="col">{{ t('dashboard.price') }}</div>
+              <div class="col">{{ t('dashboard.volume24h') }}</div>
             </div>
             <div 
               v-for="(coin, index) in topMovers" 
@@ -164,9 +164,9 @@
         <!-- 观察列表 -->
         <div class="watchlist">
           <div class="section-header">
-            <h3 class="section-title">Watchlist</h3>
+            <h3 class="section-title">{{ t('dashboard.watchlist') }}</h3>
             <router-link to="/markets" class="more-link">
-              More
+              {{ t('dashboard.more') }}
               <el-icon><DArrowRight /></el-icon>
             </router-link>
           </div>
@@ -174,10 +174,10 @@
           <div class="watchlist-table">
             <div class="table-header">
               <div class="col">#</div>
-              <div class="col">Coin</div>
-              <div class="col">Price</div>
-              <div class="col">24h Volume</div>
-              <div class="col">Actions</div>
+              <div class="col">{{ t('dashboard.coin') }}</div>
+              <div class="col">{{ t('dashboard.price') }}</div>
+              <div class="col">{{ t('dashboard.volume24h') }}</div>
+              <div class="col">{{ t('dashboard.actions') }}</div>
             </div>
             <div 
               v-for="(coin, index) in watchlist" 
@@ -205,7 +205,7 @@
                 </span>
               </div>
               <div class="col actions">
-                <button class="btn-buy" @click="$router.push('/buy-crypto')">Buy</button>
+                <button class="btn-buy" @click="$router.push('/buy-crypto')">{{ t('dashboard.buy') }}</button>
                 <el-icon class="favorite"><StarFilled /></el-icon>
                 <el-icon class="more"><MoreFilled /></el-icon>
               </div>
@@ -219,6 +219,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { 
   CaretTop, 
@@ -231,6 +232,8 @@ import {
   StarFilled,
   MoreFilled
 } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 // 数据
 const walletBalance = ref(54496.41)
@@ -598,6 +601,7 @@ const initPriceChart = () => {
     
     .btn-buy {
       padding: 6px 16px;
+      min-width: 60px;
       background: #4CAF50;
       color: white;
       border: none;
@@ -605,6 +609,7 @@ const initPriceChart = () => {
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      white-space: nowrap;
       
       &:hover {
         background: #45A049;
