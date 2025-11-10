@@ -13,7 +13,9 @@ git clone https://github.com/Zhouua/SEProject.git
 ### 前端
 
 ```python
-npm install ...
+cd frontend
+npm install
+npm start dev
 ```
 
 
@@ -56,6 +58,15 @@ https://goto.etherscan.com/address/0x11b815efb8f581194ae79006d24e0d814b7697f6
 2. 统计分析
 3. xxx
 ### 参考文献
+https://ieeexplore.ieee.org/abstract/document/10646836
+
+https://arxiv.org/abs/2406.02172
+
+https://arxiv.org/abs/2410.10797
+
+https://www.researchgate.net/publication/388494799_Cross-Chain_Arbitrage_The_Next_Frontier_of_MEV_in_Decentralized_Finance
+
+https://link.springer.com/article/10.1007/s11117-021-00848-z
 
 xxx
 

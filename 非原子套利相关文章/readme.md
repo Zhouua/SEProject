@@ -1,0 +1,1 @@
+对识别区块链上非原子套利行为的研究很少，很难找到完美适配我们任务的文章。这几篇是我发现的跟我们的任务有很大关联的，其中第二篇Cross-Rollup MEV: Non-Atomic Arbitrage Across L2 Blockchains最适配我们的任务，这篇文章的背景几乎与我们的任务完全相同，比如相同的交易所Binance(CEX)和Uniswap V3(DEX)，相同的交易对：WETH-USDC。第五篇文章与我们的任务关联最小，可以适当看当作启发。
