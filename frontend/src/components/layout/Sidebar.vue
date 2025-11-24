@@ -52,7 +52,6 @@ const menuItems = [
   { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
   { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Histogram },
   { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: DataLine },
-  { nameKey: 'sidebar.markets', path: '/markets', icon: Tickets },
 ]
 
 const isActive = (path) => {

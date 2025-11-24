@@ -40,11 +40,6 @@ const routes = [
         path: 'liquidity-analysis',
         name: 'LiquidityAnalysis',
         component: () => import('@/views/LiquidityAnalysis.vue')
-      },
-      {
-        path: 'markets',
-        name: 'Markets',
-        component: () => import('@/views/Markets.vue')
       }
     ]
   }

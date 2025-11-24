@@ -6,11 +6,13 @@
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
-          type="daterange"
+          type="datetimerange"
           range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          :default-value="[new Date('2025-09-01'), new Date('2025-09-30')]"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
+          :disabled-date="disabledDate"
+          value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
         />
       </div>
@@ -77,6 +79,12 @@
 
     <!-- 图表区域 -->
     <div class="charts-section">
+      <div class="chart-card full-width">
+        <h3 class="chart-title">流动性趋势 (USDT Value)</h3>
+        <p class="chart-desc">展示 Binance 和 Uniswap 的流动性（交易总值）随时间的变化</p>
+        <div ref="liquidityTrendChartRef" style="width: 100%; height: 400px;"></div>
+      </div>
+
       <div class="chart-card">
         <h3 class="chart-title">平均交易量对比（按小时）</h3>
         <div ref="hourlyVolumeChartRef" style="width: 100%; height: 400px;"></div>
@@ -101,17 +109,28 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import { store } from '@/store'
 
-const dateRange = ref([new Date('2025-09-01'), new Date('2025-09-30')])
+// 使用标准ISO格式初始化日期，确保浏览器兼容性
+const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const priceData = ref([])
+
+// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
+const disabledDate = (time) => {
+  const minDate = new Date('2025-09-01T00:00:00')
+  const maxDate = new Date('2025-09-30T23:59:59')
+  return time < minDate || time > maxDate
+}
 
 const hourlyVolumeChartRef = ref(null)
 const liquidityDistributionChartRef = ref(null)
 const volumePriceChartRef = ref(null)
+const liquidityTrendChartRef = ref(null)
 
 let hourlyVolumeChart = null
 let liquidityDistributionChart = null
 let volumePriceChart = null
+let liquidityTrendChart = null
 
 // 计算流动性指标
 const avgVolumeBinance = computed(() => {
@@ -168,11 +187,27 @@ const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
   const [start, end] = dateRange.value
-  const data = await api.getHistoricalPrices(
-    start.toISOString().split('T')[0],
-    end.toISOString().split('T')[0],
-    10000
-  )
+  
+  // Fetch liquidity trend data (always fetch as it's small and specific)
+  const liqData = await api.getLiquidityAnalysis(start, end, '1h')
+  updateLiquidityTrendChart(liqData)
+  
+  // Check cache for price data
+  const cachedData = store.getCachedPriceData(start, end)
+  if (cachedData) {
+    console.log('Using cached price data for liquidity')
+    priceData.value = cachedData
+    updateCharts()
+    return
+  }
+  
+  console.log('Fetching liquidity data:', start, end) // 调试日志
+  
+  const data = await api.getHistoricalPrices(start, end, 50000)
+  console.log('Received data:', data?.length, 'records') // 调试日志
+  
+  // Cache the data
+  store.setPriceData(data, start, end)
   
   priceData.value = data
   updateCharts()
@@ -188,16 +223,102 @@ const initCharts = () => {
   if (volumePriceChartRef.value) {
     volumePriceChart = echarts.init(volumePriceChartRef.value)
   }
+  if (liquidityTrendChartRef.value) {
+    liquidityTrendChart = echarts.init(liquidityTrendChartRef.value)
+  }
 
   window.addEventListener('resize', () => {
     hourlyVolumeChart?.resize()
     liquidityDistributionChart?.resize()
     volumePriceChart?.resize()
+    liquidityTrendChart?.resize()
+  })
+}
+
+const updateLiquidityTrendChart = (data) => {
+  if (!liquidityTrendChart || !data || data.length === 0) return
+
+  const times = data.map(item => item.time)
+  const binanceLiq = data.map(item => item.binance_liquidity)
+  const uniswapLiq = data.map(item => item.uniswap_liquidity)
+
+  liquidityTrendChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'cross' }
+    },
+    legend: {
+      data: ['Binance Liquidity', 'Uniswap Liquidity'],
+      bottom: 10
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '12%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: times,
+      boundaryGap: false,
+      axisLabel: {
+        formatter: (value) => {
+          const date = new Date(value)
+          return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`
+        }
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'Liquidity (USDT)',
+      axisLabel: {
+        formatter: (value) => {
+          if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
+          if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
+          return value
+        }
+      }
+    },
+    series: [
+      {
+        name: 'Binance Liquidity',
+        type: 'line',
+        data: binanceLiq,
+        smooth: true,
+        showSymbol: false,
+        itemStyle: { color: '#f0b90b' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(240, 185, 11, 0.3)' },
+            { offset: 1, color: 'rgba(240, 185, 11, 0.05)' }
+          ])
+        }
+      },
+      {
+        name: 'Uniswap Liquidity',
+        type: 'line',
+        data: uniswapLiq,
+        smooth: true,
+        showSymbol: false,
+        itemStyle: { color: '#ff007a' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(255, 0, 122, 0.3)' },
+            { offset: 1, color: 'rgba(255, 0, 122, 0.05)' }
+          ])
+        }
+      }
+    ]
   })
 }
 
 const updateCharts = () => {
-  if (priceData.value.length === 0) return
+  console.log('updateCharts called, priceData:', priceData.value?.length) // 调试日志
+  
+  if (!priceData.value || priceData.value.length === 0) {
+    console.warn('No data to display')
+    return
+  }
 
   // 按小时聚合数据
   const hourlyData = {}

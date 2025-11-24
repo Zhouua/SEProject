@@ -6,11 +6,13 @@
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
-          type="daterange"
+          type="datetimerange"
           range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          :default-value="[new Date('2025-09-01'), new Date('2025-09-30')]"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
+          :disabled-date="disabledDate"
+          value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
         />
       </div>
@@ -80,10 +82,19 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import { store } from '@/store'
 import { TrendCharts, DataAnalysis, Histogram } from '@element-plus/icons-vue'
 
-const dateRange = ref([new Date('2025-09-01'), new Date('2025-09-30')])
+// 使用标准ISO格式初始化日期，确保浏览器兼容性
+const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const priceData = ref([])
+
+// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
+const disabledDate = (time) => {
+  const minDate = new Date('2025-09-01T00:00:00')
+  const maxDate = new Date('2025-09-30T23:59:59')
+  return time < minDate || time > maxDate
+}
 
 const ethVolumeChartRef = ref(null)
 const usdtVolumeChartRef = ref(null)
@@ -125,11 +136,23 @@ const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
   const [start, end] = dateRange.value
-  const data = await api.getHistoricalPrices(
-    start.toISOString().split('T')[0],
-    end.toISOString().split('T')[0],
-    10000
-  )
+  
+  // Check cache first
+  const cachedData = store.getCachedPriceData(start, end)
+  if (cachedData) {
+    console.log('Using cached price data for volume')
+    priceData.value = cachedData
+    updateCharts()
+    return
+  }
+  
+  console.log('Fetching volume data:', start, end) // 调试日志
+  
+  const data = await api.getHistoricalPrices(start, end, 50000)
+  console.log('Received data:', data?.length, 'records') // 调试日志
+  
+  // Cache the data
+  store.setPriceData(data, start, end)
   
   priceData.value = data
   updateCharts()
@@ -154,7 +177,12 @@ const initCharts = () => {
 }
 
 const updateCharts = () => {
-  if (priceData.value.length === 0) return
+  console.log('updateCharts called, priceData:', priceData.value?.length) // 调试日志
+  
+  if (!priceData.value || priceData.value.length === 0) {
+    console.warn('No data to display')
+    return
+  }
 
   const times = priceData.value.map(item => item.time)
   const ethBinance = priceData.value.map(item => item.binance?.eth_volume || 0)
