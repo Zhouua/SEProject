@@ -14,19 +14,114 @@ git clone https://github.com/Zhouua/SEProject.git
 
 ```python
 cd frontend
+# 安装依赖
 npm install
+# 启动前端
 npm start dev
 ```
-
-
 
 ### 后端
 
 ```python
-pip install ...
+cd backend
+# 安装依赖
+pip install -r requirements.txt
+# 配置环境，并在.env中填好信息
+cp .env.example .env
+# 导入数据库计算套利机会
+python scripts/import_csv_to_db.py
+# 启动后端
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+生成`trade_data`表
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>Integer</td>
+<td>主键、自增、单字段索引</td>
+<td>表唯一标识</td>
+</tr>
+<tr>
+<td>time_align</td>
+<td>DateTime</td>
+<td>非空、单字段索引</td>
+<td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
+</tr>
+<tr>
+<td>price_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>price_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>arbitrage_profit</td>
+<td>Float</td>
+<td>可空</td>
+<td>潜在套利利润（USDT）</td>
+</tr>
+<tr>
+<td>is_arbitrage_opportunity</td>
+<td>Boolean</td>
+<td>默认值 False</td>
+<td>是否为套利机会（利润 > 0 则为 True）</td>
+</tr>
+</tbody>
+</table>
+浏览器访问：
+Base URL: http://localhost:8000
+API 文档: http://localhost:8000/docs
 
+后端已配置 CORS，允许以下来源：
+```python
+origins = [
+    "http://localhost:3000",      # React 默认端口
+    "http://localhost:5173",      # Vite 默认端口
+    "http://localhost:8080",      # Vue 默认端口
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+]
+```
 
 ## 项目需求
 实现一个Web应用，完成如下两个核心功能:
@@ -41,10 +136,10 @@ USDT 为单位）。
 - 可通过如下链接查看：
 https://goto.etherscan.com/address/0x11b815efb8f581194ae79006d24e0d814b7697f6
 2. 获取交易数据的API参考文档
-  https://dune.com/home
-  https://thegraph.com/docs/zh/
-  https://github.com/binance/binance-spot-api-docs
-  https://docs.etherscan.io/
+    https://dune.com/home
+    https://thegraph.com/docs/zh/
+    https://github.com/binance/binance-spot-api-docs
+    https://docs.etherscan.io/
 
 3. 相关文献：
 
@@ -194,3 +289,65 @@ git push origin --tags
 - 后端：[@f0reverFr33](https://github.com/f0reverFr33)
 - 算法：[@oi35](https://github.com/oi35)
 - 测试：[@MKL537999](https://github.com/MKL537999)
+
+## 项目优点
+
+### 🎯 核心优势
+
+1. **数据驱动的套利识别**
+   - 基于真实历史交易数据（2025年9月1-30日）进行分析
+   - 实时计算 CEX（Binance）与 DEX（Uniswap V3）之间的价格差异
+   - 自动识别潜在套利机会并计算收益（USDT计价）
+
+2. **完整的全栈架构**
+   - **前端**：采用 Vue 3 + Vite 构建现代化单页应用，响应式设计
+   - **后端**：使用 FastAPI 高性能异步框架，提供 RESTful API
+   - **数据库**：PostgreSQL 存储海量交易数据，支持高效查询
+   - **前后端分离**：清晰的架构设计，便于维护和扩展
+
+3. **丰富的可视化分析**
+   - **价格对比**：K线图展示 Binance 和 Uniswap 价格走势对比
+   - **套利分析**：时间序列图展示套利利润分布和趋势
+   - **流动性分析**：多维度分析两个平台的流动性状况
+   - **交易量对比**：直观展示 ETH 和 USDT 交易量差异
+   - **统计仪表盘**：实时展示关键指标和套利机会
+
+4. **性能优化**
+   - **前端缓存机制**：使用 Vuex-like store 缓存价格数据，减少API调用
+   - **异步处理**：后端采用异步数据库操作，提升并发性能
+   - **分页查询**：支持大数据集的分页加载
+   - **索引优化**：数据库字段建立索引，加速查询速度
+
+5. **灵活的查询功能**
+   - 支持自定义时间范围查询（精确到分钟）
+   - 多种排序方式（按利润、时间等）
+   - 可配置的最小利润阈值过滤
+   - K线图支持多种时间间隔（1h, 4h, 1d）
+
+6. **国际化支持**
+   - 内置中英文双语界面
+   - 易于扩展更多语言
+
+7. **完善的API文档**
+   - FastAPI 自动生成交互式 API 文档（Swagger UI）
+   - 清晰的请求/响应模型定义
+   - 便于前后端协作和第三方集成
+
+8. **可扩展性设计**
+   - 模块化路由设计，易于添加新功能
+   - 清晰的代码结构和命名规范
+   - 支持添加更多交易对和交易所
+
+### 🔬 技术亮点
+
+- **非原子套利识别算法**：基于时间对齐的价格差异计算，考虑交易成本
+- **流动性指标计算**：综合 ETH 和 USDT 交易量评估市场流动性
+- **实时数据处理**：支持从 CSV 导入数据并自动计算套利机会
+- **CORS 配置**：支持跨域请求，便于开发和部署
+- **环境配置管理**：使用 .env 文件管理敏感配置
+
+### 📊 数据质量保证
+
+- 数据时间对齐：统一 Binance 和 Uniswap 的时间粒度
+- 数据完整性验证：提供数据验证脚本
+- 数据库重置功能：便于数据重新导入和测试
