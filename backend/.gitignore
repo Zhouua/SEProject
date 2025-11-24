@@ -1,0 +1,10 @@
+# 忽略环境变量文件
+.env
+
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 数据库或其他临时文件
+*.sqlite3
