@@ -21,12 +21,40 @@ npm start dev
 
 
 ### 后端
+（全都是AI写的）
+请在.env .env.example config.py中将数据库的账号密码，数据库名字改成自己的
 
 ```python
-pip install ...
+cd backend
+pip install -r requirements.txt
 ```
 
+导入数据库计算套利机会：
+```python
+cd backend/scripts
+python import_csv_to_db.py
+```
 
+查看API：
+```python
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+浏览器访问：
+Base URL: http://localhost:8000
+API 文档: http://localhost:8000/docs
+
+后端已配置 CORS，允许以下来源：
+```python
+origins = [
+    "http://localhost:3000",      # React 默认端口
+    "http://localhost:5173",      # Vite 默认端口
+    "http://localhost:8080",      # Vue 默认端口
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+]
+```
 
 ## 项目需求
 实现一个Web应用，完成如下两个核心功能:
