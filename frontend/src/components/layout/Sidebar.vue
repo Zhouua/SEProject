@@ -50,13 +50,9 @@ const { t } = useI18n()
 
 const menuItems = [
   { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
-  { nameKey: 'sidebar.trade', path: '/trade', icon: TrendCharts },
-  { nameKey: 'sidebar.markets', path: '/markets', icon: DataAnalysis },
-  { nameKey: 'sidebar.transactions', path: '/transactions', icon: Tickets },
-  { nameKey: 'sidebar.buyCrypto', path: '/buy-crypto', icon: CirclePlus },
-  { nameKey: 'sidebar.sellCrypto', path: '/sell-crypto', icon: Remove },
-  { nameKey: 'sidebar.convert', path: '/convert', icon: RefreshRight },
-  { nameKey: 'sidebar.referral', path: '/referral', icon: Present },
+  { nameKey: 'priceComparison.title', path: '/price-comparison', icon: TrendCharts },
+  { nameKey: 'arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
+  { nameKey: 'sidebar.markets', path: '/markets', icon: Tickets },
 ]
 
 const isActive = (path) => {

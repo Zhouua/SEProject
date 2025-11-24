@@ -40,38 +40,10 @@
     </div>
 
     <div class="header-right">
-      <div 
-        class="lang-dropdown" 
-        @mouseenter="showLangMenu = true" 
-        @mouseleave="showLangMenu = false"
-      >
-        <div class="header-icon lang-switch">
-          <svg class="lang-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12.87 15.07L10.33 12.56L10.36 12.53C12.1 10.59 13.34 8.36 14.07 6H17V4H10V2H8V4H1V5.99H12.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8H4.69C5.42 9.63 6.42 11.17 7.67 12.56L2.58 17.58L4 19L9 14L12.11 17.11L12.87 15.07ZM18.5 10H16.5L12 22H14L15.12 19H19.87L21 22H23L18.5 10ZM15.88 17L17.5 12.67L19.12 17H15.88Z" fill="currentColor"/>
-          </svg>
-        </div>
-        <transition name="dropdown-fade">
-          <div v-show="showLangMenu" class="lang-menu">
-            <div 
-              class="lang-option" 
-              :class="{ active: locale === 'zh' }"
-              @click="changeLang('zh')"
-            >
-              <span class="lang-code">CH</span>
-              <span class="lang-name">简体中文</span>
-            </div>
-            <div 
-              class="lang-option" 
-              :class="{ active: locale === 'en' }"
-              @click="changeLang('en')"
-            >
-              <span class="lang-code">US</span>
-              <span class="lang-name">English</span>
-            </div>
-          </div>
-        </transition>
+      <div class="header-icon lang-switch" @click="toggleLanguage">
+        <span class="lang-text">{{ locale === 'zh' ? '中' : 'EN' }}</span>
       </div>
-      <div class="header-icon notification-icon" @click="showNotificationDialog = true">
+      <div class="header-icon" @click="showNotificationDialog = true">
         <el-icon><Bell /></el-icon>
         <span class="notification-badge" v-if="hasNotifications"></span>
       </div>
@@ -148,7 +120,6 @@ const { t, locale } = useI18n()
 const searchQuery = ref('')
 const hasNotifications = ref(true)
 const showNotificationDialog = ref(false)
-const showLangMenu = ref(false)
 
 // 切换侧边栏
 const toggleSidebar = () => {
@@ -199,9 +170,8 @@ const goBack = () => {
   router.back()
 }
 
-const changeLang = (lang) => {
-  locale.value = lang
-  showLangMenu.value = false
+const toggleLanguage = () => {
+  locale.value = locale.value === 'zh' ? 'en' : 'zh'
   // 更新通知内容语言
   updateNotificationLanguage()
 }
@@ -427,118 +397,47 @@ const formatTime = (time) => {
   display: flex;
   align-items: center;
   gap: 16px;
-  
-  .lang-dropdown {
-    margin-right: -8px;
-  }
 }
 
 .header-icon {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: transparent;
-  border-radius: 4px;
+  background-color: #4CAF50;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
   
   .el-icon {
     font-size: 20px;
-    color: #1a1a1a;
+    color: #ffffff;
   }
   
   &:hover {
-    background-color: #E8F5E9;
+    background-color: #66BB6A;
+    transform: scale(1.05);
   }
   
   .notification-badge {
     position: absolute;
-    top: 6px;
-    right: 6px;
+    top: 10px;
+    right: 10px;
     width: 8px;
     height: 8px;
     background-color: #F44336;
     border-radius: 50%;
   }
-}
-
-.lang-dropdown {
-  position: relative;
   
-  .lang-switch {
-    background-color: transparent;
-    
-    .lang-icon {
-      width: 20px;
-      height: 20px;
-      color: #1a1a1a;
-    }
-    
-    &:hover {
-      background-color: #E8F5E9;
-    }
-  }
-}
-
-.lang-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  min-width: 200px;
-  overflow: hidden;
-  z-index: 1000;
-  
-  .lang-option {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    
-    .lang-code {
+  &.lang-switch {
+    .lang-text {
       font-size: 14px;
       font-weight: 600;
-      color: #666;
-      min-width: 30px;
-    }
-    
-    .lang-name {
-      font-size: 14px;
-      color: #1a1a1a;
-    }
-    
-    &:hover {
-      background-color: #f5f5f5;
-    }
-    
-    &.active {
-      background-color: #E8F5E9;
-      
-      .lang-code,
-      .lang-name {
-        color: #4CAF50;
-        font-weight: 600;
-      }
+      color: #ffffff;
     }
   }
-}
-
-.dropdown-fade-enter-active,
-.dropdown-fade-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.dropdown-fade-enter-from,
-.dropdown-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
 }
 
 .user-avatar {

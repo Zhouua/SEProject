@@ -22,49 +22,19 @@ const routes = [
         component: () => import('@/views/Dashboard.vue')
       },
       {
-        path: 'trade',
-        name: 'Trade',
-        component: () => import('@/views/Trade.vue')
+        path: 'price-comparison',
+        name: 'PriceComparison',
+        component: () => import('@/views/PriceComparison.vue')
+      },
+      {
+        path: 'arbitrage-analysis',
+        name: 'ArbitrageAnalysis',
+        component: () => import('@/views/ArbitrageAnalysis.vue')
       },
       {
         path: 'markets',
         name: 'Markets',
         component: () => import('@/views/Markets.vue')
-      },
-      {
-        path: 'transactions',
-        name: 'Transactions',
-        component: () => import('@/views/Transactions.vue')
-      },
-      {
-        path: 'buy-crypto',
-        name: 'BuyCrypto',
-        component: () => import('@/views/BuyCrypto.vue')
-      },
-      {
-        path: 'sell-crypto',
-        name: 'SellCrypto',
-        component: () => import('@/views/SellCrypto.vue')
-      },
-      {
-        path: 'convert',
-        name: 'Convert',
-        component: () => import('@/views/Convert.vue')
-      },
-      {
-        path: 'referral',
-        name: 'Referral',
-        component: () => import('@/views/Referral.vue')
-      },
-      {
-        path: 'crypto/:symbol',
-        name: 'CryptoDetails',
-        component: () => import('@/views/CryptoDetails.vue')
-      },
-      {
-        path: 'assets',
-        name: 'Assets',
-        component: () => import('@/views/Assets.vue')
       }
     ]
   }
