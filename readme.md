@@ -35,10 +35,6 @@ cd backend/scripts
 python import_csv_to_db.py
 ```
 生成trade_data表
-## 数据库表结构
-
-### trade_data 表字段说明
-
 <table>
 <thead>
 <tr>
