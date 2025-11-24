@@ -34,6 +34,18 @@ pip install -r requirements.txt
 cd backend/scripts
 python import_csv_to_db.py
 ```
+生成trade_data表
+字段名	类型	约束	说明
+id	Integer	主键、自增、单字段索引	表唯一标识
+time_align	DateTime	非空、单字段索引	对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）
+price_b	Float	非空	Binance 平台 ETH 价格（USDT 计价）
+eth_vol_b	Float	非空	Binance 平台 ETH 交易量（数量单位）
+usdt_vol_b	Float	非空	Binance 平台 USDT 交易量（金额单位）
+price_u	Float	非空	Uniswap 平台 ETH 价格（USDT 计价）
+eth_vol_u	Float	非空	Uniswap 平台 ETH 交易量（数量单位）
+usdt_vol_u	Float	非空	Uniswap 平台 USDT 交易量（金额单位）
+arbitrage_profit	Float	可空	潜在套利利润（USDT）
+is_arbitrage_opportunity	Boolean	默认值 False	是否为套利机会（利润 > 0 则为 True）
 
 查看API：
 ```python
