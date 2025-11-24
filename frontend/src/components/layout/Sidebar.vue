@@ -37,10 +37,8 @@ import {
   TrendCharts, 
   DataAnalysis,
   Tickets,
-  CirclePlus,
-  Remove,
-  RefreshRight,
-  Present,
+  Histogram,
+  DataLine,
   QuestionFilled,
   Setting
 } from '@element-plus/icons-vue'
@@ -50,8 +48,10 @@ const { t } = useI18n()
 
 const menuItems = [
   { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
-  { nameKey: 'priceComparison.title', path: '/price-comparison', icon: TrendCharts },
-  { nameKey: 'arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
+  { nameKey: 'sidebar.priceComparison.title', path: '/price-comparison', icon: TrendCharts },
+  { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
+  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Histogram },
+  { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: DataLine },
   { nameKey: 'sidebar.markets', path: '/markets', icon: Tickets },
 ]
 

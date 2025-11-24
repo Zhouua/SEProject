@@ -14,6 +14,8 @@ const messages = {
       arbitrage: {
         title: '套利分析'
       },
+      volumeComparison: '交易量对比',
+      liquidityAnalysis: '流动性分析',
       markets: '市场数据',
       transactions: '交易记录',
       buyCrypto: 'Uniswap V3 数据',
@@ -137,6 +139,8 @@ const messages = {
       arbitrage: {
         title: 'Arbitrage Analysis'
       },
+      volumeComparison: 'Volume Comparison',
+      liquidityAnalysis: 'Liquidity Analysis',
       markets: 'Market Data',
       transactions: 'Transactions',
       buyCrypto: 'Uniswap V3 Data',

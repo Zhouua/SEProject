@@ -1,7 +1,7 @@
 <template>
   <div class="arbitrage-analysis">
     <div class="header">
-      <h2>{{ t('arbitrage.title') }}</h2>
+      <h2>{{ t('sidebar.arbitrage.title') }}</h2>
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
@@ -37,16 +37,20 @@
       
       <div class="table-section">
         <el-table :data="opportunities" style="width: 100%" height="400">
-          <el-table-column prop="timestamp" label="Time" width="180">
+          <el-table-column prop="time" label="时间" width="180">
             <template #default="scope">
-              {{ new Date(scope.row.timestamp).toLocaleString() }}
+              {{ new Date(scope.row.time).toLocaleString() }}
             </template>
           </el-table-column>
-          <el-table-column prop="path" label="Path" width="180" />
-          <el-table-column prop="amount" label="Amount (ETH)" width="120" />
-          <el-table-column prop="profit" label="Profit (USDT)" sortable>
+          <el-table-column prop="strategy" label="策略" width="250" />
+          <el-table-column prop="eth_volume_uniswap" label="交易量 (ETH)" width="140">
             <template #default="scope">
-              <span class="profit-text">+{{ scope.row.profit }}</span>
+              {{ scope.row.eth_volume_uniswap?.toFixed(4) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="potential_profit_usdt" label="利润 (USDT)" sortable>
+            <template #default="scope">
+              <span class="profit-text">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -67,7 +71,7 @@ let chart = null
 const dateRange = ref([new Date('2025-09-01'), new Date('2025-09-30')])
 const opportunities = ref([])
 
-const totalProfit = computed(() => opportunities.value.reduce((sum, item) => sum + item.profit, 0))
+const totalProfit = computed(() => opportunities.value.reduce((sum, item) => sum + (item.potential_profit_usdt || 0), 0))
 const avgProfit = computed(() => opportunities.value.length ? totalProfit.value / opportunities.value.length : 0)
 
 const initChart = () => {
@@ -81,7 +85,12 @@ const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
   const [start, end] = dateRange.value
-  opportunities.value = await api.getArbitrageOpportunities(start, end)
+  opportunities.value = await api.getArbitrageOpportunities(
+    start.toISOString().split('T')[0],
+    end.toISOString().split('T')[0],
+    0,
+    1000
+  )
   updateChart()
 }
 
@@ -91,8 +100,8 @@ const updateChart = () => {
   // Aggregate profit by day
   const dailyProfit = {}
   opportunities.value.forEach(opp => {
-    const date = opp.timestamp.split('T')[0]
-    dailyProfit[date] = (dailyProfit[date] || 0) + opp.profit
+    const date = opp.time.split('T')[0]
+    dailyProfit[date] = (dailyProfit[date] || 0) + (opp.potential_profit_usdt || 0)
   })
 
   const dates = Object.keys(dailyProfit).sort()

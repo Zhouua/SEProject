@@ -1,7 +1,7 @@
 <template>
   <div class="price-comparison">
     <div class="header">
-      <h2>{{ t('priceComparison.title') }}</h2>
+      <h2>{{ t('sidebar.priceComparison.title') }}</h2>
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
@@ -43,16 +43,20 @@ const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
   const [start, end] = dateRange.value
-  const data = await api.getHistoricalPrices(start, end)
+  const data = await api.getHistoricalPrices(
+    start.toISOString().split('T')[0],
+    end.toISOString().split('T')[0],
+    5000
+  )
   updateChart(data)
 }
 
 const updateChart = (data) => {
-  if (!chart) return
+  if (!chart || data.length === 0) return
 
-  const dates = data.map(item => item.date)
-  const uniswapPrices = data.map(item => item.uniswap)
-  const binancePrices = data.map(item => item.binance)
+  const times = data.map(item => item.time)
+  const uniswapPrices = data.map(item => item.uniswap?.price || 0)
+  const binancePrices = data.map(item => item.binance?.price || 0)
 
   const option = {
     title: {
@@ -75,7 +79,14 @@ const updateChart = (data) => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: dates
+      data: times,
+      axisLabel: {
+        rotate: 45,
+        formatter: (value) => {
+          const date = new Date(value)
+          return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+        }
+      }
     },
     yAxis: {
       type: 'value',

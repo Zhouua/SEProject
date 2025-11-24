@@ -14,27 +14,27 @@ git clone https://github.com/Zhouua/SEProject.git
 
 ```python
 cd frontend
+# 安装依赖
 npm install
+# 启动前端
 npm start dev
 ```
 
-
-
 ### 后端
-（全都是AI写的）
-请在.env .env.example config.py中将数据库的账号密码，数据库名字改成自己的
 
 ```python
 cd backend
+# 安装依赖
 pip install -r requirements.txt
+# 配置环境，并在.env中填好信息
+cp .env.example .env
+# 导入数据库计算套利机会
+python scripts/import_csv_to_db.py
+# 启动后端
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-导入数据库计算套利机会：
-```python
-cd backend/scripts
-python import_csv_to_db.py
-```
-生成trade_data表
+生成`trade_data`表
 <table>
 <thead>
 <tr>
@@ -107,13 +107,6 @@ python import_csv_to_db.py
 </tr>
 </tbody>
 </table>
-
-
-查看API：
-```python
-cd backend
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
 浏览器访问：
 Base URL: http://localhost:8000
 API 文档: http://localhost:8000/docs
@@ -143,10 +136,10 @@ USDT 为单位）。
 - 可通过如下链接查看：
 https://goto.etherscan.com/address/0x11b815efb8f581194ae79006d24e0d814b7697f6
 2. 获取交易数据的API参考文档
-  https://dune.com/home
-  https://thegraph.com/docs/zh/
-  https://github.com/binance/binance-spot-api-docs
-  https://docs.etherscan.io/
+    https://dune.com/home
+    https://thegraph.com/docs/zh/
+    https://github.com/binance/binance-spot-api-docs
+    https://docs.etherscan.io/
 
 3. 相关文献：
 

@@ -32,6 +32,16 @@ const routes = [
         component: () => import('@/views/ArbitrageAnalysis.vue')
       },
       {
+        path: 'volume-comparison',
+        name: 'VolumeComparison',
+        component: () => import('@/views/VolumeComparison.vue')
+      },
+      {
+        path: 'liquidity-analysis',
+        name: 'LiquidityAnalysis',
+        component: () => import('@/views/LiquidityAnalysis.vue')
+      },
+      {
         path: 'markets',
         name: 'Markets',
         component: () => import('@/views/Markets.vue')

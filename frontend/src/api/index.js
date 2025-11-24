@@ -1,56 +1,74 @@
-// Mock API service
-// In a real application, this would fetch data from the backend
+import axios from 'axios'
+
+const API_BASE_URL = 'http://localhost:8000'
 
 export const api = {
-  // Fetch historical prices for comparison
-  // start, end: Date strings or timestamps
-  async getHistoricalPrices(start, end) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Generate mock data for Sept 2025
-    const data = [];
-    const startDate = new Date('2025-09-01');
-    const endDate = new Date('2025-09-30');
-    
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
-      // Base price around 2000-3000 for ETH
-      const basePrice = 2500 + Math.random() * 500;
+  // 获取历史价格数据
+  async getHistoricalPrices(start, end, limit = 1000) {
+    try {
+      const params = { limit }
+      if (start) params.start_time = start
+      if (end) params.end_time = end
       
-      data.push({
-        date: dateStr,
-        uniswap: basePrice + (Math.random() - 0.5) * 20, // Slight difference
-        binance: basePrice + (Math.random() - 0.5) * 20
-      });
+      const response = await axios.get(`${API_BASE_URL}/api/prices/`, { params })
+      return response.data.data
+    } catch (error) {
+      console.error('获取价格数据失败:', error)
+      return []
     }
-    
-    return data;
   },
 
-  // Fetch arbitrage opportunities
-  async getArbitrageOpportunities(start, end) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const opportunities = [];
-    const startDate = new Date('2025-09-01');
-    const endDate = new Date('2025-09-30');
-
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-        // Randomly generate 0-3 opportunities per day
-        const count = Math.floor(Math.random() * 4);
-        for(let i=0; i<count; i++) {
-            const profit = Math.random() * 100 + 10; // 10 - 110 USDT
-            opportunities.push({
-                id: Math.random().toString(36).substr(2, 9),
-                timestamp: new Date(d.getTime() + Math.random() * 86400000).toISOString(),
-                profit: parseFloat(profit.toFixed(2)),
-                path: Math.random() > 0.5 ? 'Uniswap -> Binance' : 'Binance -> Uniswap',
-                amount: parseFloat((Math.random() * 10 + 1).toFixed(4)) // 1 - 11 ETH
-            });
-        }
+  // 获取最新价格
+  async getLatestPrice() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/prices/latest`)
+      return response.data.data
+    } catch (error) {
+      console.error('获取最新价格失败:', error)
+      return null
     }
-    
-    return opportunities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  },
+
+  // 获取套利机会
+  async getArbitrageOpportunities(start, end, minProfit = 0, limit = 100) {
+    try {
+      const params = { limit, min_profit: minProfit, sort_by: 'profit_desc' }
+      if (start) params.start_time = start
+      if (end) params.end_time = end
+      
+      const response = await axios.get(`${API_BASE_URL}/api/arbitrage/opportunities`, { params })
+      return response.data.data
+    } catch (error) {
+      console.error('获取套利机会失败:', error)
+      return []
+    }
+  },
+
+  // 获取Top套利机会
+  async getTopArbitrage(topN = 10) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/arbitrage/top`, {
+        params: { top_n: topN }
+      })
+      return response.data.data
+    } catch (error) {
+      console.error('获取Top套利机会失败:', error)
+      return []
+    }
+  },
+
+  // 获取统计数据
+  async getStatistics(start, end) {
+    try {
+      const params = {}
+      if (start) params.start_time = start
+      if (end) params.end_time = end
+      
+      const response = await axios.get(`${API_BASE_URL}/api/statistics/summary`, { params })
+      return response.data.data
+    } catch (error) {
+      console.error('获取统计数据失败:', error)
+      return null
+    }
   }
 };
