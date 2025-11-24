@@ -13,18 +13,122 @@ git clone https://github.com/Zhouua/SEProject.git
 ### 前端
 
 ```python
-npm install ...
+cd frontend
+npm install
+npm start dev
 ```
 
 
 
 ### 后端
+（全都是AI写的）
+请在.env .env.example config.py中将数据库的账号密码，数据库名字改成自己的
 
 ```python
-pip install ...
+cd backend
+pip install -r requirements.txt
 ```
 
+导入数据库计算套利机会：
+```python
+cd backend/scripts
+python import_csv_to_db.py
+```
+生成trade_data表
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>Integer</td>
+<td>主键、自增、单字段索引</td>
+<td>表唯一标识</td>
+</tr>
+<tr>
+<td>time_align</td>
+<td>DateTime</td>
+<td>非空、单字段索引</td>
+<td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
+</tr>
+<tr>
+<td>price_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>price_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>arbitrage_profit</td>
+<td>Float</td>
+<td>可空</td>
+<td>潜在套利利润（USDT）</td>
+</tr>
+<tr>
+<td>is_arbitrage_opportunity</td>
+<td>Boolean</td>
+<td>默认值 False</td>
+<td>是否为套利机会（利润 > 0 则为 True）</td>
+</tr>
+</tbody>
+</table>
 
+
+查看API：
+```python
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+浏览器访问：
+Base URL: http://localhost:8000
+API 文档: http://localhost:8000/docs
+
+后端已配置 CORS，允许以下来源：
+```python
+origins = [
+    "http://localhost:3000",      # React 默认端口
+    "http://localhost:5173",      # Vite 默认端口
+    "http://localhost:8080",      # Vue 默认端口
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+]
+```
 
 ## 项目需求
 实现一个Web应用，完成如下两个核心功能:
@@ -56,6 +160,15 @@ https://goto.etherscan.com/address/0x11b815efb8f581194ae79006d24e0d814b7697f6
 2. 统计分析
 3. xxx
 ### 参考文献
+https://ieeexplore.ieee.org/abstract/document/10646836
+
+https://arxiv.org/abs/2406.02172
+
+https://arxiv.org/abs/2410.10797
+
+https://www.researchgate.net/publication/388494799_Cross-Chain_Arbitrage_The_Next_Frontier_of_MEV_in_Decentralized_Finance
+
+https://link.springer.com/article/10.1007/s11117-021-00848-z
 
 xxx
 
