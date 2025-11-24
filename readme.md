@@ -35,17 +35,83 @@ cd backend/scripts
 python import_csv_to_db.py
 ```
 生成trade_data表
-字段名	类型	约束	说明
-id	Integer	主键、自增、单字段索引	表唯一标识
-time_align	DateTime	非空、单字段索引	对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）
-price_b	Float	非空	Binance 平台 ETH 价格（USDT 计价）
-eth_vol_b	Float	非空	Binance 平台 ETH 交易量（数量单位）
-usdt_vol_b	Float	非空	Binance 平台 USDT 交易量（金额单位）
-price_u	Float	非空	Uniswap 平台 ETH 价格（USDT 计价）
-eth_vol_u	Float	非空	Uniswap 平台 ETH 交易量（数量单位）
-usdt_vol_u	Float	非空	Uniswap 平台 USDT 交易量（金额单位）
-arbitrage_profit	Float	可空	潜在套利利润（USDT）
-is_arbitrage_opportunity	Boolean	默认值 False	是否为套利机会（利润 > 0 则为 True）
+## 数据库表结构
+
+### trade_data 表字段说明
+
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>Integer</td>
+<td>主键、自增、单字段索引</td>
+<td>表唯一标识</td>
+</tr>
+<tr>
+<td>time_align</td>
+<td>DateTime</td>
+<td>非空、单字段索引</td>
+<td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
+</tr>
+<tr>
+<td>price_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_b</td>
+<td>Float</td>
+<td>非空</td>
+<td>Binance 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>price_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 价格（USDT 计价）</td>
+</tr>
+<tr>
+<td>eth_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 ETH 交易量（数量单位）</td>
+</tr>
+<tr>
+<td>usdt_vol_u</td>
+<td>Float</td>
+<td>非空</td>
+<td>Uniswap 平台 USDT 交易量（金额单位）</td>
+</tr>
+<tr>
+<td>arbitrage_profit</td>
+<td>Float</td>
+<td>可空</td>
+<td>潜在套利利润（USDT）</td>
+</tr>
+<tr>
+<td>is_arbitrage_opportunity</td>
+<td>Boolean</td>
+<td>默认值 False</td>
+<td>是否为套利机会（利润 > 0 则为 True）</td>
+</tr>
+</tbody>
+</table>
+
 
 查看API：
 ```python
