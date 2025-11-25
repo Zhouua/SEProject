@@ -119,10 +119,10 @@ const messages = {
       efficiency: 'AOB 升级'
     },
     welcome: {
-      saveTime: '节省买家时间',
-      adoptionRate: '采用参考率',
-      profitMargin: '增强卖家私有域',
-      efficiency: 'AOB 升级',
+      dataAccuracy: '数据准确性',
+      timeCoverage: '7x24小时覆盖率',
+      endToEndLatency: '端到端延迟',
+      apiResponseTime: 'API响应时间(P95)',
       scrollDown: '向下滚动或点击查看更多'
     }
   },
@@ -244,10 +244,10 @@ const messages = {
       efficiency: 'AOB Upgrade'
     },
     welcome: {
-      saveTime: 'Save buyer time',
-      adoptionRate: 'Adoption reference rate',
-      profitMargin: 'Enhance seller\'s private domain',
-      efficiency: 'AOB Upgrade',
+      dataAccuracy: 'Data Accuracy',
+      timeCoverage: '7x24h Coverage',
+      endToEndLatency: 'End-to-End Latency',
+      apiResponseTime: 'API Response Time (P95)',
       scrollDown: 'Scroll down or click for more'
     }
   }

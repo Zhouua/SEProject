@@ -27,29 +27,29 @@
     <!-- 欢迎页面内容 -->
     <div class="welcome-page" @wheel="handleScroll" @click="handleClick">
       <div class="welcome-container">
-      <!-- 四个统计卡片 -->
-      <!-- 左上角卡片 -->
+      <!-- 四个KPI指标卡片 -->
+      <!-- 左上角卡片 - 数据准确性 -->
       <div class="stat-card top-left">
-        <div class="stat-value">99%</div>
-        <div class="stat-label">{{ t('welcome.saveTime') }}</div>
+        <div class="stat-value">99.9%</div>
+        <div class="stat-label">{{ t('welcome.dataAccuracy') }}</div>
       </div>
 
-      <!-- 右上角卡片 -->
+      <!-- 右上角卡片 - 时间覆盖率 -->
       <div class="stat-card top-right">
-        <div class="stat-value">56%</div>
-        <div class="stat-label">{{ t('welcome.adoptionRate') }}</div>
+        <div class="stat-value">99.5%</div>
+        <div class="stat-label">{{ t('welcome.timeCoverage') }}</div>
       </div>
 
-      <!-- 左下角卡片 -->
+      <!-- 左下角卡片 - 端到端延迟 -->
       <div class="stat-card bottom-left">
-        <div class="stat-value">28.74%</div>
-        <div class="stat-label">{{ t('welcome.profitMargin') }}</div>
+        <div class="stat-value">&lt;1s</div>
+        <div class="stat-label">{{ t('welcome.endToEndLatency') }}</div>
       </div>
 
-      <!-- 右下角卡片 -->
+      <!-- 右下角卡片 - API响应时间 -->
       <div class="stat-card bottom-right">
-        <div class="stat-value">8pt</div>
-        <div class="stat-label">{{ t('welcome.efficiency') }}</div>
+        <div class="stat-value">&lt;500ms</div>
+        <div class="stat-label">{{ t('welcome.apiResponseTime') }}</div>
       </div>
 
       <!-- 装饰性元素 -->
