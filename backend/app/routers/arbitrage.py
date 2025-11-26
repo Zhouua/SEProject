@@ -1,14 +1,11 @@
-# backend/app/routers/arbitrage.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 from datetime import datetime
 
-# 导入数据库和模型
 from ..database import get_db
-from ..models import TradeData
-# 🆕 导入 schemas
+from ..models import BinanceData, UniswapData, ArbitrageData
 from ..schemas import (
     ArbitrageOpportunitiesResponse,
     ArbitrageOpportunityItem,
@@ -18,69 +15,62 @@ from ..schemas import (
 
 router = APIRouter(prefix="/api/arbitrage", tags=["Arbitrage"])
 
-
-@router.get("/opportunities", response_model=ArbitrageOpportunitiesResponse)  # 🆕
+@router.get("/opportunities", response_model=ArbitrageOpportunitiesResponse)
 async def get_arbitrage_opportunities(
-    start_time: Optional[datetime] = Query(None, description="开始时间"),
-    end_time: Optional[datetime] = Query(None, description="结束时间"),
-    min_profit: float = Query(0, ge=0, description="最小获利金额（USDT）"),
-    limit: int = Query(100, ge=1, le=50000, description="返回记录数量"),
-    offset: int = Query(0, ge=0, description="跳过记录数量"),
-    sort_by: str = Query("profit_desc", description="排序方式: profit_desc, profit_asc, time_desc, time_asc"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
+    min_profit: float = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=50000),
+    offset: int = Query(0, ge=0),
+    sort_by: str = Query("profit_desc"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取套利机会列表
+    查询满足条件的套利机会 (表 arbitrage_data)
+    并关联对应 binance_data 和 uniswap_data 显示价格和交易量
     """
-    
-    # 构建查询 - 只查询套利机会
-    query = select(TradeData).where(TradeData.is_arbitrage_opportunity == True)
-    
-    # 添加时间范围过滤
+    query = (
+        select(ArbitrageData, BinanceData, UniswapData)
+        .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
+        .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
+        .where(ArbitrageData.is_arbitrage_opportunity == True)
+    )
     if start_time:
-        query = query.where(TradeData.time_align >= start_time)
+        query = query.where(ArbitrageData.time_align >= start_time)
     if end_time:
-        query = query.where(TradeData.time_align <= end_time)
-    
-    # 添加最小获利过滤
+        query = query.where(ArbitrageData.time_align <= end_time)
     if min_profit > 0:
-        query = query.where(TradeData.arbitrage_profit >= min_profit)
-    
-    # 添加排序
+        query = query.where(ArbitrageData.arbitrage_profit >= min_profit)
+
     if sort_by == "profit_desc":
-        query = query.order_by(TradeData.arbitrage_profit.desc())
+        query = query.order_by(ArbitrageData.arbitrage_profit.desc())
     elif sort_by == "profit_asc":
-        query = query.order_by(TradeData.arbitrage_profit.asc())
+        query = query.order_by(ArbitrageData.arbitrage_profit.asc())
     elif sort_by == "time_desc":
-        query = query.order_by(TradeData.time_align.desc())
+        query = query.order_by(ArbitrageData.time_align.desc())
     elif sort_by == "time_asc":
-        query = query.order_by(TradeData.time_align.asc())
+        query = query.order_by(ArbitrageData.time_align.asc())
     else:
-        query = query.order_by(TradeData.arbitrage_profit.desc())
-    
-    # 添加分页
+        query = query.order_by(ArbitrageData.arbitrage_profit.desc())
+
     query = query.offset(offset).limit(limit)
-    
-    # 执行查询
     result = await db.execute(query)
-    records = result.scalars().all()
-    
-    # 🆕 使用 Pydantic 模型构建响应
+    records = result.all()
+
     data = [
         ArbitrageOpportunityItem(
-            time=record.time_align.isoformat(),
-            binance_price=round(record.price_b, 2),
-            uniswap_price=round(record.price_u, 2),
-            price_diff=round(record.price_b - record.price_u, 2),
-            price_diff_percent=round((record.price_b - record.price_u) / record.price_u * 100, 4) if record.price_u != 0 else 0,
-            eth_volume_uniswap=round(record.eth_vol_u, 4),
-            potential_profit_usdt=round(record.arbitrage_profit, 2),
+            time=arb.time_align.isoformat(),
+            binance_price=round(bn.price, 2),
+            uniswap_price=round(uni.price, 2),
+            price_diff=round(bn.price - uni.price, 2),
+            price_diff_percent=round((bn.price - uni.price) / uni.price * 100, 4) if uni.price != 0 else 0,
+            eth_volume_uniswap=round(uni.eth_vol, 4),
+            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
             strategy="Buy on Uniswap → Sell on Binance"
         )
-        for record in records
+        for arb, bn, uni in records
     ]
-    
-    # 🆕 返回符合 schema 的响应
+
     return ArbitrageOpportunitiesResponse(
         success=True,
         count=len(data),
@@ -88,39 +78,35 @@ async def get_arbitrage_opportunities(
     )
 
 
-@router.get("/top", response_model=TopArbitrageResponse)  # 🆕
+@router.get("/top", response_model=TopArbitrageResponse)
 async def get_top_arbitrage_opportunities(
-    top_n: int = Query(10, ge=1, le=100, description="返回前N个最佳机会"),
+    top_n: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    获取Top N最佳套利机会
-    """
     query = (
-        select(TradeData)
-        .where(TradeData.is_arbitrage_opportunity == True)
-        .order_by(TradeData.arbitrage_profit.desc())
+        select(ArbitrageData, BinanceData, UniswapData)
+        .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
+        .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
+        .where(ArbitrageData.is_arbitrage_opportunity == True)
+        .order_by(ArbitrageData.arbitrage_profit.desc())
         .limit(top_n)
     )
-    
     result = await db.execute(query)
-    records = result.scalars().all()
-    
-    # 🆕 使用 Pydantic 模型构建响应
+    records = result.all()
+
     data = [
         TopArbitrageItem(
             rank=idx + 1,
-            time=record.time_align.isoformat(),
-            binance_price=round(record.price_b, 2),
-            uniswap_price=round(record.price_u, 2),
-            price_diff=round(record.price_b - record.price_u, 2),
-            eth_volume=round(record.eth_vol_u, 4),
-            potential_profit_usdt=round(record.arbitrage_profit, 2)
+            time=arb.time_align.isoformat(),
+            binance_price=round(bn.price, 2),
+            uniswap_price=round(uni.price, 2),
+            price_diff=round(bn.price - uni.price, 2),
+            eth_volume=round(uni.eth_vol, 4),
+            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2)
         )
-        for idx, record in enumerate(records)
+        for idx, (arb, bn, uni) in enumerate(records)
     ]
-    
-    # 🆕 返回符合 schema 的响应
+
     return TopArbitrageResponse(
         success=True,
         count=len(data),
@@ -130,45 +116,36 @@ async def get_top_arbitrage_opportunities(
 
 @router.get("/stats/daily")
 async def get_daily_arbitrage_stats(
-    start_time: Optional[datetime] = Query(None, description="开始时间"),
-    end_time: Optional[datetime] = Query(None, description="结束时间"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    获取每日套利统计数据（用于图表快速加载）
-    """
     from sqlalchemy import func, cast, Date
-    
-    # 按天分组查询
+
     query = (
         select(
-            cast(TradeData.time_align, Date).label('date'),
-            func.sum(TradeData.arbitrage_profit).label('total_profit'),
-            func.count(TradeData.id).label('count')
+            cast(ArbitrageData.time_align, Date).label("date"),
+            func.sum(ArbitrageData.arbitrage_profit).label("total_profit"),
+            func.count(ArbitrageData.id).label("count")
         )
-        .where(TradeData.is_arbitrage_opportunity == True)
-        .group_by(cast(TradeData.time_align, Date))
-        .order_by(cast(TradeData.time_align, Date))
+        .where(ArbitrageData.is_arbitrage_opportunity == True)
+        .group_by(cast(ArbitrageData.time_align, Date))
+        .order_by(cast(ArbitrageData.time_align, Date))
     )
-    
     if start_time:
-        query = query.where(TradeData.time_align >= start_time)
+        query = query.where(ArbitrageData.time_align >= start_time)
     if end_time:
-        query = query.where(TradeData.time_align <= end_time)
-        
+        query = query.where(ArbitrageData.time_align <= end_time)
     result = await db.execute(query)
     records = result.all()
-    
+
     data = [
         {
-            "date": record.date.isoformat(),
-            "total_profit": round(record.total_profit, 2) if record.total_profit else 0,
-            "count": record.count
+            "date": rec.date.isoformat(),
+            "total_profit": round(rec.total_profit or 0, 2),
+            "count": rec.count,
         }
-        for record in records
+        for rec in records
     ]
-    
-    return {
-        "success": True,
-        "data": data
-    }
+
+    return {"success": True, "data": data}

@@ -1,7 +1,5 @@
 # backend/app/api.py
 from fastapi import APIRouter
-from typing import List
-from app.schemas import TradeData
 
 router = APIRouter()
 
@@ -9,7 +7,6 @@ router = APIRouter()
 async def root():
     return {"message": "Welcome to the Arbitrage Analysis Backend API"}
 
-@router.get("/trades", response_model=List[TradeData], tags=["Trades"])
 async def get_trades(start_date: str, end_date: str):
     # 这里暂时返回模拟数据，后续接数据库或外部API
     sample_data = [

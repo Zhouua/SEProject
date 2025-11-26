@@ -1,4 +1,3 @@
-# backend/app/routers/statistics.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
@@ -6,8 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import TradeData
-# 🆕 导入 schemas
+from ..models import BinanceData, UniswapData, ArbitrageData
 from ..schemas import (
     StatisticsOverviewResponse,
     StatisticsOverviewData,
@@ -19,83 +17,89 @@ from ..schemas import (
 
 router = APIRouter(prefix="/api/statistics", tags=["Statistics"])
 
-
-@router.get("/overview", response_model=StatisticsOverviewResponse)  # 🆕
+@router.get("/overview", response_model=StatisticsOverviewResponse)
 async def get_statistics_overview(
-    start_time: Optional[datetime] = Query(None, description="开始时间"),
-    end_time: Optional[datetime] = Query(None, description="结束时间"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    获取统计概览 - 优化版本
-    """
-    
-    # 构建时间过滤条件
-    time_filters = []
+    time_filters_arb = []
     if start_time:
-        time_filters.append(TradeData.time_align >= start_time)
+        time_filters_arb.append(ArbitrageData.time_align >= start_time)
     if end_time:
-        time_filters.append(TradeData.time_align <= end_time)
-    
-    # 1. 总记录数
-    total_query = select(func.count(TradeData.id))
-    if time_filters:
-        total_query = total_query.where(and_(*time_filters))
-    
+        time_filters_arb.append(ArbitrageData.time_align <= end_time)
+
+    time_filters_bn = []
+    if start_time:
+        time_filters_bn.append(BinanceData.time_align >= start_time)
+    if end_time:
+        time_filters_bn.append(BinanceData.time_align <= end_time)
+
+    time_filters_uni = []
+    if start_time:
+        time_filters_uni.append(UniswapData.time_align >= start_time)
+    if end_time:
+        time_filters_uni.append(UniswapData.time_align <= end_time)
+
+    # 总记录数：用套利表
+    total_query = select(func.count(ArbitrageData.id))
+    if time_filters_arb:
+        total_query = total_query.where(and_(*time_filters_arb))
     total_result = await db.execute(total_query)
     total_records = total_result.scalar() or 0
-    
-    # 2. 套利机会数量
-    arb_count_query = select(func.count(TradeData.id)).where(
-        TradeData.is_arbitrage_opportunity == True
+
+    # 套利机会数量
+    arb_count_query = select(func.count(ArbitrageData.id)).where(
+        ArbitrageData.is_arbitrage_opportunity == True
     )
-    if time_filters:
-        arb_count_query = arb_count_query.where(and_(*time_filters))
-    
+    if time_filters_arb:
+        arb_count_query = arb_count_query.where(and_(*time_filters_arb))
     arb_count_result = await db.execute(arb_count_query)
     arbitrage_count = arb_count_result.scalar() or 0
-    
-    # 3. 套利获利统计
+
+    # 套利获利统计
     profit_query = select(
-        func.min(TradeData.arbitrage_profit),
-        func.max(TradeData.arbitrage_profit),
-        func.avg(TradeData.arbitrage_profit),
-        func.sum(TradeData.arbitrage_profit)
-    ).where(TradeData.is_arbitrage_opportunity == True)
-    
-    if time_filters:
-        profit_query = profit_query.where(and_(*time_filters))
-    
+        func.min(ArbitrageData.arbitrage_profit),
+        func.max(ArbitrageData.arbitrage_profit),
+        func.avg(ArbitrageData.arbitrage_profit),
+        func.sum(ArbitrageData.arbitrage_profit)
+    ).where(ArbitrageData.is_arbitrage_opportunity == True)
+    if time_filters_arb:
+        profit_query = profit_query.where(and_(*time_filters_arb))
     profit_result = await db.execute(profit_query)
     profit_stats = profit_result.first()
-    
-    # 4. 价格统计
-    price_query = select(
-        func.min(TradeData.price_b),
-        func.max(TradeData.price_b),
-        func.avg(TradeData.price_b),
-        func.min(TradeData.price_u),
-        func.max(TradeData.price_u),
-        func.avg(TradeData.price_u)
+
+    # 价格统计 - 需要分别从两表查询
+    price_stats_bn_query = select(
+        func.min(BinanceData.price),
+        func.max(BinanceData.price),
+        func.avg(BinanceData.price)
     )
-    if time_filters:
-        price_query = price_query.where(and_(*time_filters))
-    
-    price_result = await db.execute(price_query)
-    price_stats = price_result.first()
-    
-    # 5. 时间范围
+    if time_filters_bn:
+        price_stats_bn_query = price_stats_bn_query.where(and_(*time_filters_bn))
+    price_stats_bn_result = await db.execute(price_stats_bn_query)
+    price_stats_bn = price_stats_bn_result.first()
+
+    price_stats_uni_query = select(
+        func.min(UniswapData.price),
+        func.max(UniswapData.price),
+        func.avg(UniswapData.price)
+    )
+    if time_filters_uni:
+        price_stats_uni_query = price_stats_uni_query.where(and_(*time_filters_uni))
+    price_stats_uni_result = await db.execute(price_stats_uni_query)
+    price_stats_uni = price_stats_uni_result.first()
+
+    # 时间范围 - 以套利表为主
     time_query = select(
-        func.min(TradeData.time_align),
-        func.max(TradeData.time_align)
+        func.min(ArbitrageData.time_align),
+        func.max(ArbitrageData.time_align)
     )
-    if time_filters:
-        time_query = time_query.where(and_(*time_filters))
-    
+    if time_filters_arb:
+        time_query = time_query.where(and_(*time_filters_arb))
     time_result = await db.execute(time_query)
-    time_range = time_result.first()
-    
-    # 🆕 使用 Pydantic 模型构建响应
+    time_range_res = time_result.first()
+
     return StatisticsOverviewResponse(
         success=True,
         data=StatisticsOverviewData(
@@ -103,26 +107,26 @@ async def get_statistics_overview(
             arbitrage_opportunities=ArbitrageStatistics(
                 count=arbitrage_count,
                 percentage=round(arbitrage_count / total_records * 100, 2) if total_records > 0 else 0,
-                min_profit=round(float(profit_stats[0]), 2) if profit_stats[0] else 0,
-                max_profit=round(float(profit_stats[1]), 2) if profit_stats[1] else 0,
-                avg_profit=round(float(profit_stats[2]), 2) if profit_stats[2] else 0,
-                total_potential_profit=round(float(profit_stats[3]), 2) if profit_stats[3] else 0
+                min_profit=round(float(profit_stats[0]) if profit_stats[0] else 0, 2),
+                max_profit=round(float(profit_stats[1]) if profit_stats[1] else 0, 2),
+                avg_profit=round(float(profit_stats[2]) if profit_stats[2] else 0, 2),
+                total_potential_profit=round(float(profit_stats[3]) if profit_stats[3] else 0, 2)
             ),
             price_statistics=PriceStatistics(
                 binance=ExchangePriceStatistics(
-                    min=round(float(price_stats[0]), 2) if price_stats[0] else 0,
-                    max=round(float(price_stats[1]), 2) if price_stats[1] else 0,
-                    avg=round(float(price_stats[2]), 2) if price_stats[2] else 0
+                    min=round(float(price_stats_bn[0]) if price_stats_bn[0] else 0, 2),
+                    max=round(float(price_stats_bn[1]) if price_stats_bn[1] else 0, 2),
+                    avg=round(float(price_stats_bn[2]) if price_stats_bn[2] else 0, 2)
                 ),
                 uniswap=ExchangePriceStatistics(
-                    min=round(float(price_stats[3]), 2) if price_stats[3] else 0,
-                    max=round(float(price_stats[4]), 2) if price_stats[4] else 0,
-                    avg=round(float(price_stats[5]), 2) if price_stats[5] else 0
+                    min=round(float(price_stats_uni[0]) if price_stats_uni[0] else 0, 2),
+                    max=round(float(price_stats_uni[1]) if price_stats_uni[1] else 0, 2),
+                    avg=round(float(price_stats_uni[2]) if price_stats_uni[2] else 0, 2)
                 )
             ),
             time_range=TimeRange(
-                start=time_range[0].isoformat() if time_range[0] else None,
-                end=time_range[1].isoformat() if time_range[1] else None
+                start=time_range_res[0].isoformat() if time_range_res[0] else None,
+                end=time_range_res[1].isoformat() if time_range_res[1] else None
             )
         )
     )
