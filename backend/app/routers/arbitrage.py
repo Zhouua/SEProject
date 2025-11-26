@@ -24,7 +24,7 @@ async def get_arbitrage_opportunities(
     start_time: Optional[datetime] = Query(None, description="开始时间"),
     end_time: Optional[datetime] = Query(None, description="结束时间"),
     min_profit: float = Query(0, ge=0, description="最小获利金额（USDT）"),
-    limit: int = Query(100, ge=1, le=1000, description="返回记录数量"),
+    limit: int = Query(100, ge=1, le=50000, description="返回记录数量"),
     offset: int = Query(0, ge=0, description="跳过记录数量"),
     sort_by: str = Query("profit_desc", description="排序方式: profit_desc, profit_asc, time_desc, time_asc"),
     db: AsyncSession = Depends(get_db)
@@ -126,3 +126,49 @@ async def get_top_arbitrage_opportunities(
         count=len(data),
         data=data
     )
+
+
+@router.get("/stats/daily")
+async def get_daily_arbitrage_stats(
+    start_time: Optional[datetime] = Query(None, description="开始时间"),
+    end_time: Optional[datetime] = Query(None, description="结束时间"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    获取每日套利统计数据（用于图表快速加载）
+    """
+    from sqlalchemy import func, cast, Date
+    
+    # 按天分组查询
+    query = (
+        select(
+            cast(TradeData.time_align, Date).label('date'),
+            func.sum(TradeData.arbitrage_profit).label('total_profit'),
+            func.count(TradeData.id).label('count')
+        )
+        .where(TradeData.is_arbitrage_opportunity == True)
+        .group_by(cast(TradeData.time_align, Date))
+        .order_by(cast(TradeData.time_align, Date))
+    )
+    
+    if start_time:
+        query = query.where(TradeData.time_align >= start_time)
+    if end_time:
+        query = query.where(TradeData.time_align <= end_time)
+        
+    result = await db.execute(query)
+    records = result.all()
+    
+    data = [
+        {
+            "date": record.date.isoformat(),
+            "total_profit": round(record.total_profit, 2) if record.total_profit else 0,
+            "count": record.count
+        }
+        for record in records
+    ]
+    
+    return {
+        "success": True,
+        "data": data
+    }

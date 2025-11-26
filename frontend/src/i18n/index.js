@@ -8,8 +8,15 @@ const messages = {
     },
     sidebar: {
       dashboard: '数据概览',
-      trade: '价格对比',
-      markets: '套利分析',
+      priceComparison: {
+        title: '价格对比'
+      },
+      arbitrage: {
+        title: '套利分析'
+      },
+      volumeComparison: '交易量对比',
+      liquidityAnalysis: '流动性分析',
+      markets: '市场数据',
       transactions: '交易记录',
       buyCrypto: 'Uniswap V3 数据',
       sellCrypto: 'Binance 数据',
@@ -126,8 +133,14 @@ const messages = {
     },
     sidebar: {
       dashboard: 'Data Overview',
-      trade: 'Price Comparison',
-      wallet: 'Arbitrage Analysis',
+      priceComparison: {
+        title: 'Price Comparison'
+      },
+      arbitrage: {
+        title: 'Arbitrage Analysis'
+      },
+      volumeComparison: 'Volume Comparison',
+      liquidityAnalysis: 'Liquidity Analysis',
       markets: 'Market Data',
       transactions: 'Transactions',
       buyCrypto: 'Uniswap V3 Data',

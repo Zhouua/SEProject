@@ -8,7 +8,7 @@
           <div class="profit-card">
             <div class="profit-header">
               <div class="profit-info">
-                <p class="profit-label">{{ t('dashboard.walletBalance') }}</p>
+                <p class="profit-label">Total Volume (ETH)</p>
                 <h2 class="profit-amount">${{ walletBalance.toLocaleString() }}</h2>
                 <div class="profit-change">
                   <el-icon class="change-icon" :class="walletChange >= 0 ? 'up' : 'down'">
@@ -17,7 +17,7 @@
                   </el-icon>
                   <span :class="walletChange >= 0 ? 'text-up' : 'text-down'">{{ walletChange }}%</span>
                 </div>
-                <p class="revenue-text">{{ t('dashboard.revenue') }} ${{ revenue.toLocaleString() }}</p>
+                <p class="revenue-text">Total Potential Profit ${{ revenue.toLocaleString() }}</p>
               </div>
               <div class="profit-right">
                 <el-select v-model="selectedCurrency" class="currency-select" size="small">
@@ -66,7 +66,7 @@
         <!-- 最大价差记录 -->
         <div class="top-movers">
           <div class="section-header">
-            <h3 class="section-title">{{ t('dashboard.topMovers') }}</h3>
+            <h3 class="section-title">Top Arbitrage Opportunities</h3>
             <router-link to="/markets" class="more-link">
               {{ t('dashboard.more') }}
               <el-icon><DArrowRight /></el-icon>
@@ -76,8 +76,8 @@
             <div class="table-header">
               <div class="col">#</div>
               <div class="col">{{ t('dashboard.coin') }}</div>
-              <div class="col">{{ t('dashboard.price') }}</div>
-              <div class="col">{{ t('dashboard.volume24h') }}</div>
+              <div class="col">Profit (USDT)</div>
+              <div class="col">Price Diff</div>
             </div>
             <div 
               v-for="(coin, index) in topMovers.slice(0, 4)" 
@@ -157,7 +157,7 @@
         <!-- 套利机会监控 -->
         <div class="watchlist">
           <div class="section-header">
-            <h3 class="section-title">{{ t('dashboard.watchlist') }}</h3>
+            <h3 class="section-title">Recent Arbitrage Opportunities</h3>
             <router-link to="/markets" class="more-link">
               {{ t('dashboard.more') }}
               <el-icon><DArrowRight /></el-icon>
@@ -166,41 +166,34 @@
           
           <div class="compact-table">
             <div class="table-header">
-              <div class="col">#</div>
-              <div class="col">{{ t('dashboard.coin') }}</div>
-              <div class="col">{{ t('dashboard.price') }}</div>
-              <div class="col">{{ t('dashboard.volume24h') }}</div>
+              <div class="col">Time</div>
+              <div class="col">DEX (Uniswap)</div>
+              <div class="col">CEX (Binance)</div>
+              <div class="col">Profit (USDT)</div>
               <div class="col">{{ t('dashboard.actions') }}</div>
             </div>
             <div 
               v-for="(coin, index) in watchlist.slice(0, 5)" 
-              :key="coin.symbol"
+              :key="index"
               class="table-row"
             >
-              <div class="col">{{ index + 1 }}</div>
-              <div class="col coin-info">
-                <img :src="coin.icon" :alt="coin.name" class="coin-icon" />
-                <div>
-                  <div class="coin-name">{{ coin.name }}</div>
-                  <div class="coin-symbol">{{ coin.symbol }}</div>
-                </div>
+              <div class="col time-col">
+                {{ new Date(coin.time).toLocaleString() }}
               </div>
               <div class="col">
-                <div class="price">${{ coin.price }}</div>
+                <div class="price">${{ coin.uniswap_price?.toFixed(2) }}</div>
+                <div class="sub-text">Vol: {{ coin.eth_volume?.toFixed(4) }} ETH</div>
               </div>
               <div class="col">
-                <span :class="coin.change >= 0 ? 'text-up' : 'text-down'">
-                  <el-icon class="change-icon">
-                    <CaretTop v-if="coin.change >= 0" />
-                    <CaretBottom v-else />
-                  </el-icon>
-                  {{ Math.abs(coin.change) }}%
+                <div class="price">${{ coin.binance_price?.toFixed(2) }}</div>
+              </div>
+              <div class="col">
+                <span class="text-up">
+                  +${{ coin.price?.toFixed(2) }}
                 </span>
               </div>
               <div class="col actions">
-                <button class="btn-buy" @click="$router.push('/buy-crypto')">{{ t('dashboard.buy') }}</button>
-                <el-icon class="favorite"><StarFilled /></el-icon>
-                <el-icon class="more-icon"><MoreFilled /></el-icon>
+                <button class="btn-buy" @click="$router.push('/arbitrage-analysis')">Analyze</button>
               </div>
             </div>
           </div>
@@ -211,9 +204,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
+import { api } from '@/api'
+import { store } from '@/store'
 import { 
   CaretTop, 
   CaretBottom, 
@@ -229,33 +224,21 @@ import {
 const { t } = useI18n()
 
 // 数据
-const walletBalance = ref(54496.41)
-const walletChange = ref(4.61)
-const revenue = ref(4864)
+const walletBalance = ref(0) // Total Volume (ETH)
+const walletChange = ref(0) // Placeholder
+const revenue = ref(0) // Total Potential Profit
 const selectedCurrency = ref('USDT')
 
 const selectedCoin = ref('USDT/ETH')
 const selectedChartCurrency = ref('USD')
-const currentPrice = ref(114884)
-const priceChange = ref(4.61)
-const priceChangeAmount = ref(82401.23)
-const selectedTimeRange = ref('1D')
+const currentPrice = ref(0)
+const priceChange = ref(0)
+const priceChangeAmount = ref(0)
+const selectedTimeRange = ref('1D') // Default to 1D, but we load full month data anyway
 const timeRanges = ['1H', '4H', '12H', '1D', '1W', '1M']
 
-const topMovers = ref([
-  { name: 'Metadium', symbol: 'META', price: '0.0205', change: 42.33, icon: 'https://cryptologos.cc/logos/metadium-meta-logo.png?v=029' },
-  { name: 'Sylo', symbol: 'SYLO', price: '0.0006', change: 51.33, icon: 'https://cryptologos.cc/logos/sylo-sylo-logo.png?v=029' },
-  { name: 'Electroneum', symbol: 'ETN', price: '0.0035', change: 24.80, icon: 'https://cryptologos.cc/logos/electroneum-etn-logo.png?v=029' },
-  { name: 'Utrust', symbol: 'UTK', price: '0.0353', change: 24.62, icon: 'https://cryptologos.cc/logos/utrust-utk-logo.png?v=029' },
-])
-
-const watchlist = ref([
-  { name: 'Bitcoin', symbol: 'BTC', price: '114,884', change: -0.73, icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=029' },
-  { name: 'Ethereum', symbol: 'ETH', price: '4,231', change: -1.06, icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029' },
-  { name: 'XRP', symbol: 'XRP', price: '3.01', change: 1.23, icon: 'https://cryptologos.cc/logos/xrp-xrp-logo.png?v=029' },
-  { name: 'Solana', symbol: 'SOL', price: '180.12', change: -0.60, icon: 'https://cryptologos.cc/logos/solana-sol-logo.png?v=029' },
-  { name: 'Cardano', symbol: 'ADA', price: '0.9326', change: 0.99, icon: 'https://cryptologos.cc/logos/cardano-ada-logo.png?v=029' },
-])
+const topMovers = ref([]) // Top Arbitrage Opportunities
+const watchlist = ref([]) // Recent Arbitrage Opportunities
 
 // 图表引用
 const priceChartRef = ref(null)
@@ -263,69 +246,85 @@ const miniChartRef = ref(null)
 let priceChart = null
 let miniChart = null
 
-// 生成不同时间范围的模拟数据
-const generateChartData = (timeRange) => {
-  const dataPoints = {
-    '1H': 12,   // 5分钟一个点
-    '4H': 16,   // 15分钟一个点
-    '12H': 24,  // 30分钟一个点
-    '1D': 24,   // 1小时一个点
-    '1W': 28,   // 6小时一个点
-    '1M': 30    // 1天一个点
-  }
-  
-  const count = dataPoints[timeRange]
-  const data = []
-  const times = []
-  const basePrice = 110000
-  let currentPrice = basePrice
-  
-  for (let i = 0; i < count; i++) {
-    // 生成时间标签
-    times.push(getTimeLabel(timeRange, i, count))
+const loading = ref(false)
+
+// Fetch Dashboard Data
+const fetchDashboardData = async () => {
+  loading.value = true
+  try {
+    const start = '2025-09-01 00:00:00'
+    const end = '2025-09-30 23:59:59'
     
-    // 生成价格数据（模拟随机波动）
-    const change = (Math.random() - 0.5) * 8000
-    currentPrice = Math.max(basePrice * 0.8, Math.min(basePrice * 1.2, currentPrice + change))
-    data.push(Math.round(currentPrice))
+    // 1. Fetch Statistics Overview
+    const stats = await api.getStatistics(start, end)
+    if (stats) {
+      // Use Total Volume (ETH) as "Wallet Balance" equivalent for display
+      // Since we don't have total volume in stats overview, let's sum it up from price data or just use a placeholder
+      // Actually, let's use Total Potential Profit as Revenue
+      revenue.value = stats.arbitrage_opportunities.total_potential_profit
+      
+      // For Wallet Balance, let's show Total ETH Volume from Uniswap (approx)
+      // We need to fetch price data for this, or just use a placeholder based on stats
+      // Let's fetch price data to calculate volumes and for the chart
+    }
+    
+    // 2. Fetch Price Data (using cache)
+    let priceData = store.getCachedPriceData(start, end)
+    if (!priceData) {
+      priceData = await api.getHistoricalPrices(start, end, 50000)
+      store.setPriceData(priceData, start, end)
+    }
+    
+    if (priceData && priceData.length > 0) {
+      // Calculate Total Volume
+      const totalEthVol = priceData.reduce((sum, item) => sum + (item.uniswap?.eth_volume || 0) + (item.binance?.eth_volume || 0), 0)
+      walletBalance.value = Math.round(totalEthVol)
+      
+      // Update Current Price (Last record)
+      const lastRecord = priceData[priceData.length - 1]
+      currentPrice.value = lastRecord.binance?.price || 0
+      
+      // Calculate Price Change (vs first record of the month)
+      const firstRecord = priceData[0]
+      const firstPrice = firstRecord.binance?.price || 0
+      priceChangeAmount.value = currentPrice.value - firstPrice
+      priceChange.value = ((priceChangeAmount.value / firstPrice) * 100).toFixed(2)
+      
+      updatePriceChart(priceData)
+      updateMiniChart(priceData)
+    }
+    
+    // 3. Fetch Top Arbitrage Opportunities
+    const topArb = await api.getTopArbitrage(5)
+    topMovers.value = topArb.map(item => ({
+      name: 'Arbitrage Opp',
+      symbol: 'ETH-USDT',
+      price: item.potential_profit_usdt.toFixed(2), // Show profit as price
+      change: item.price_diff.toFixed(2), // Show price diff as change
+      icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029',
+      time: item.time
+    }))
+    
+    // 4. Fetch Recent Arbitrage Opportunities (as Watchlist)
+    // Use sortBy='time_desc' to get the most recent ones
+    const recentArb = await api.getArbitrageOpportunities(start, end, 0, 5, 0, 'time_desc')
+    watchlist.value = recentArb.data.map(item => ({
+      name: 'Arbitrage Opp',
+      symbol: 'ETH-USDT',
+      price: item.potential_profit_usdt,
+      change: item.price_diff,
+      icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029',
+      time: item.time,
+      uniswap_price: item.uniswap_price,
+      binance_price: item.binance_price,
+      eth_volume: item.eth_volume_uniswap
+    }))
+    
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error)
+  } finally {
+    loading.value = false
   }
-  
-  return { times, data }
-}
-
-// 生成时间标签
-const getTimeLabel = (timeRange, index, total) => {
-  const now = new Date()
-  let time
-  
-  switch(timeRange) {
-    case '1H':
-      time = new Date(now - (total - index) * 5 * 60 * 1000)
-      return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    case '4H':
-      time = new Date(now - (total - index) * 15 * 60 * 1000)
-      return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    case '12H':
-      time = new Date(now - (total - index) * 30 * 60 * 1000)
-      return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    case '1D':
-      time = new Date(now - (total - index) * 60 * 60 * 1000)
-      return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    case '1W':
-      time = new Date(now - (total - index) * 6 * 60 * 60 * 1000)
-      return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    case '1M':
-      time = new Date(now - (total - index) * 24 * 60 * 60 * 1000)
-      return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    default:
-      return ''
-  }
-}
-
-// 切换时间范围
-const changeTimeRange = (range) => {
-  selectedTimeRange.value = range
-  updatePriceChart()
 }
 
 // 初始化图表
@@ -333,6 +332,7 @@ onMounted(() => {
   nextTick(() => {
     initPriceChart()
     initMiniChart()
+    fetchDashboardData()
   })
   
   // 监听窗口大小变化
@@ -347,20 +347,19 @@ onMounted(() => {
 })
 
 const initPriceChart = () => {
-  if (!priceChartRef.value) {
-    console.error('priceChartRef is not available')
-    return
-  }
-  
-  console.log('Initializing price chart...', priceChartRef.value)
+  if (!priceChartRef.value) return
   priceChart = echarts.init(priceChartRef.value)
-  updatePriceChart()
 }
 
-const updatePriceChart = () => {
-  if (!priceChart) return
+const updatePriceChart = (data) => {
+  if (!priceChart || !data) return
   
-  const { times, data } = generateChartData(selectedTimeRange.value)
+  // Downsample for performance if needed, but 50k points might be okay for canvas
+  // Let's take every 10th point for dashboard chart to be lighter
+  const sampledData = data.filter((_, index) => index % 10 === 0)
+  
+  const times = sampledData.map(item => item.time)
+  const prices = sampledData.map(item => item.binance?.price || 0)
   
   const option = {
     grid: { 
@@ -376,28 +375,26 @@ const updatePriceChart = () => {
       axisLabel: { 
         color: '#999',
         fontSize: 11,
-        interval: Math.floor(times.length / 6)
+        formatter: (value) => {
+           const date = new Date(value)
+           return `${date.getMonth() + 1}/${date.getDate()}`
+        }
       },
       axisTick: { show: false }
     },
     yAxis: {
       type: 'value',
+      scale: true,
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
       axisLabel: { 
         color: '#999',
-        fontSize: 11,
-        formatter: (value) => {
-          if (value >= 1000) {
-            return (value / 1000).toFixed(0) + 'k'
-          }
-          return value
-        }
+        fontSize: 11
       }
     },
     series: [{
-      data: data,
+      data: prices,
       type: 'line',
       smooth: true,
       symbol: 'none',
@@ -417,22 +414,6 @@ const updatePriceChart = () => {
           color: '#4CAF50',
           type: 'dashed'
         }
-      },
-      formatter: (params) => {
-        const item = params[0]
-        return `
-          <div style="font-size: 12px;">
-            <div style="color: #666;">${item.axisValue}</div>
-            <div style="color: #1a1a1a; font-weight: 600; margin-top: 4px;">$${item.value.toLocaleString()}</div>
-          </div>
-        `
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e0e0e0',
-      borderWidth: 1,
-      padding: 12,
-      textStyle: {
-        color: '#1a1a1a'
       }
     }
   }
@@ -442,21 +423,22 @@ const updatePriceChart = () => {
 
 // 初始化小型趋势图
 const initMiniChart = () => {
-  if (!miniChartRef.value) {
-    console.error('miniChartRef is not available')
-    return
-  }
-  
-  console.log('Initializing mini chart...', miniChartRef.value)
+  if (!miniChartRef.value) return
   miniChart = echarts.init(miniChartRef.value)
-  const miniData = [42000, 43500, 42800, 44200, 45000, 43800, 46000, 47500, 46800, 48500, 50000, 49500, 51000, 52500, 54496]
+}
+
+const updateMiniChart = (data) => {
+  if (!miniChart || !data) return
+  
+  // Take last 50 points for mini chart
+  const recentData = data.slice(-50).map(item => item.binance?.price || 0)
   
   const option = {
     grid: { top: 5, right: 5, bottom: 5, left: 5 },
     xAxis: { type: 'category', show: false },
-    yAxis: { type: 'value', show: false },
+    yAxis: { type: 'value', show: false, scale: true },
     series: [{
-      data: miniData,
+      data: recentData,
       type: 'line',
       smooth: true,
       symbol: 'none',
@@ -471,6 +453,12 @@ const initMiniChart = () => {
   }
   
   miniChart.setOption(option)
+}
+
+// 切换时间范围 (Placeholder for now, as we load full month)
+const changeTimeRange = (range) => {
+  selectedTimeRange.value = range
+  // In a real app, we would filter data based on range
 }
 </script>
 
@@ -802,7 +790,17 @@ const initMiniChart = () => {
   .compact-table {
     .table-header,
     .table-row {
-      grid-template-columns: 30px 2fr 1fr 1fr 1.2fr;
+      grid-template-columns: 1.5fr 1.2fr 1fr 1fr 0.8fr;
+    }
+    
+    .time-col {
+      font-size: 11px;
+      color: #666;
+    }
+    
+    .sub-text {
+      font-size: 10px;
+      color: #999;
     }
     
     .actions {

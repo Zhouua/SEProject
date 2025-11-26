@@ -37,10 +37,8 @@ import {
   TrendCharts, 
   DataAnalysis,
   Tickets,
-  CirclePlus,
-  Remove,
-  RefreshRight,
-  Present,
+  Histogram,
+  DataLine,
   QuestionFilled,
   Setting
 } from '@element-plus/icons-vue'
@@ -50,13 +48,10 @@ const { t } = useI18n()
 
 const menuItems = [
   { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
-  { nameKey: 'sidebar.trade', path: '/trade', icon: TrendCharts },
-  { nameKey: 'sidebar.markets', path: '/markets', icon: DataAnalysis },
-  { nameKey: 'sidebar.transactions', path: '/transactions', icon: Tickets },
-  { nameKey: 'sidebar.buyCrypto', path: '/buy-crypto', icon: CirclePlus },
-  { nameKey: 'sidebar.sellCrypto', path: '/sell-crypto', icon: Remove },
-  { nameKey: 'sidebar.convert', path: '/convert', icon: RefreshRight },
-  { nameKey: 'sidebar.referral', path: '/referral', icon: Present },
+  { nameKey: 'sidebar.priceComparison.title', path: '/price-comparison', icon: TrendCharts },
+  { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
+  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Histogram },
+  { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: DataLine },
 ]
 
 const isActive = (path) => {

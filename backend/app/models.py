@@ -32,6 +32,7 @@ class TradeData(Base):
     # 创建复合索引，优化时间范围查询
     __table_args__ = (
         Index('idx_time_arbitrage', 'time_align', 'is_arbitrage_opportunity'),
+        Index('idx_arbitrage_profit', 'arbitrage_profit'),
     )
 
     def __repr__(self):

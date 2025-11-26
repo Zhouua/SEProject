@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 修改导入路径 - 使用相对导入
-from .routers import prices, arbitrage, statistics
+from .routers import prices, arbitrage, statistics, liquidity
 
 app = FastAPI(
     title="Crypto Arbitrage API",
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(prices.router)
 app.include_router(arbitrage.router)
 app.include_router(statistics.router)
+app.include_router(liquidity.router)
 
 @app.get("/")
 async def root():
