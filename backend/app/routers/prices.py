@@ -1,14 +1,11 @@
-# backend/app/routers/prices.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from typing import Optional
 from datetime import datetime
 
-# 导入数据库和模型
 from ..database import get_db
-from ..models import TradeData
-# 🆕 导入 schemas
+from ..models import BinanceData, UniswapData
 from ..schemas import (
     PriceListResponse,
     LatestPriceResponse,
@@ -19,169 +16,200 @@ from ..schemas import (
 
 router = APIRouter(prefix="/api/prices", tags=["Prices"])
 
-
-@router.get("/", response_model=PriceListResponse)  # 🆕 添加 response_model
+@router.get("/", response_model=PriceListResponse)
 async def get_prices(
-    start_time: Optional[datetime] = Query(None, description="开始时间 (YYYY-MM-DD HH:MM:SS)"),
-    end_time: Optional[datetime] = Query(None, description="结束时间 (YYYY-MM-DD HH:MM:SS)"),
-    limit: int = Query(100, ge=1, le=50000, description="返回记录数量"),
-    offset: int = Query(0, ge=0, description="跳过记录数量"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取价格数据
-    
-    - **start_time**: 开始时间（可选）
-    - **end_time**: 结束时间（可选）
-    - **limit**: 返回记录数量（默认100，最大1000）
-    - **offset**: 分页偏移量（默认0）
+    从 binance_data 和 uniswap_data 获取价格数据并时间对齐后响应
     """
-    
-    # 构建查询
-    query = select(TradeData).order_by(TradeData.time_align)
-    
-    # 添加时间范围过滤
+    # 先分别获取两边数据
+    query_bn = select(BinanceData).order_by(BinanceData.time_align)
+    query_uni = select(UniswapData).order_by(UniswapData.time_align)
+
     if start_time:
-        query = query.where(TradeData.time_align >= start_time)
+        query_bn = query_bn.where(BinanceData.time_align >= start_time)
+        query_uni = query_uni.where(UniswapData.time_align >= start_time)
     if end_time:
-        query = query.where(TradeData.time_align <= end_time)
-    
-    # 添加分页
-    query = query.offset(offset).limit(limit)
-    
-    # 执行查询
-    result = await db.execute(query)
-    records = result.scalars().all()
-    
-    # 🆕 使用 Pydantic 模型构建响应
-    data = [
-        PriceDataItem(
-            time=record.time_align.isoformat(),
+        query_bn = query_bn.where(BinanceData.time_align <= end_time)
+        query_uni = query_uni.where(UniswapData.time_align <= end_time)
+
+    # 限制结果集
+    result_bn = await db.execute(query_bn.offset(offset).limit(limit))
+    result_uni = await db.execute(query_uni.offset(offset).limit(limit))
+
+    records_bn = result_bn.scalars().all()
+    records_uni = result_uni.scalars().all()
+
+    # 简单时间对齐：只匹配相同时间的条目
+    bn_map = {r.time_align: r for r in records_bn}
+    uni_map = {r.time_align: r for r in records_uni}
+    common_times = sorted(set(bn_map.keys()).intersection(set(uni_map.keys())))
+
+    data = []
+    for t in common_times:
+        bn = bn_map[t]
+        uni = uni_map[t]
+        price_diff = bn.price - uni.price
+        price_diff_percent = ((price_diff) / uni.price * 100) if uni.price != 0 else 0
+
+        data.append(PriceDataItem(
+            time=t.isoformat(),
             binance=ExchangePriceData(
-                price=round(record.price_b, 2),
-                eth_volume=round(record.eth_vol_b, 4),
-                usdt_volume=round(record.usdt_vol_b, 2)
+                price=round(bn.price, 2),
+                eth_volume=round(bn.eth_vol, 4),
+                usdt_volume=round(bn.usdt_vol, 2)
             ),
             uniswap=ExchangePriceData(
-                price=round(record.price_u, 2),
-                eth_volume=round(record.eth_vol_u, 4),
-                usdt_volume=round(record.usdt_vol_u, 2)
+                price=round(uni.price, 2),
+                eth_volume=round(uni.eth_vol, 4),
+                usdt_volume=round(uni.usdt_vol, 2)
             ),
-            price_diff=round(record.price_b - record.price_u, 2),
-            price_diff_percent=round((record.price_b - record.price_u) / record.price_u * 100, 4) if record.price_u != 0 else 0
-        )
-        for record in records
-    ]
-    
-    # 🆕 返回符合 schema 的响应
+            price_diff=round(price_diff, 2),
+            price_diff_percent=round(price_diff_percent, 4)
+        ))
+
     return PriceListResponse(
         success=True,
         count=len(data),
         data=data
     )
 
-
-@router.get("/latest", response_model=LatestPriceResponse)  # 🆕 添加 response_model
+@router.get("/latest", response_model=LatestPriceResponse)
 async def get_latest_price(db: AsyncSession = Depends(get_db)):
-    """
-    获取最新的价格数据
-    """
-    query = select(TradeData).order_by(TradeData.time_align.desc()).limit(1)
-    result = await db.execute(query)
-    record = result.scalar_one_or_none()
-    
-    if not record:
-        # 🆕 使用 schema 返回错误响应
-        return LatestPriceResponse(
-            success=False,
-            message="No data available",
-            data=None
+    """获取最新价格对，取两个表中最新时间的最新记录"""
+    # 查询最新时间
+    last_bn = await db.execute(select(BinanceData).order_by(BinanceData.time_align.desc()).limit(1))
+    last_uni = await db.execute(select(UniswapData).order_by(UniswapData.time_align.desc()).limit(1))
+
+    bn_rec = last_bn.scalar_one_or_none()
+    uni_rec = last_uni.scalar_one_or_none()
+
+    if not bn_rec or not uni_rec:
+        return LatestPriceResponse(success=False, message="No data available", data=None)
+
+    # 选取最晚的时间作为最新时间
+    latest_time = max(bn_rec.time_align, uni_rec.time_align)
+    # 取对应数据（确保时间对齐）
+    if bn_rec.time_align != latest_time:
+        # 查询时间匹配的binance数据
+        bn_res = await db.execute(
+            select(BinanceData).where(BinanceData.time_align == latest_time)
         )
-    
-    # 🆕 使用 Pydantic 模型构建响应
+        bn_rec = bn_res.scalar_one_or_none()
+    if uni_rec.time_align != latest_time:
+        uni_res = await db.execute(
+            select(UniswapData).where(UniswapData.time_align == latest_time)
+        )
+        uni_rec = uni_res.scalar_one_or_none()
+
+    if not bn_rec or not uni_rec:
+        return LatestPriceResponse(success=False, message="No aligned latest data", data=None)
+
+    price_diff = bn_rec.price - uni_rec.price
+
     return LatestPriceResponse(
         success=True,
         data=LatestPriceData(
-            time=record.time_align.isoformat(),
+            time=latest_time.isoformat(),
             binance=ExchangePriceData(
-                price=round(record.price_b, 2),
-                eth_volume=round(record.eth_vol_b, 4),
-                usdt_volume=round(record.usdt_vol_b, 2)
+                price=round(bn_rec.price, 2),
+                eth_volume=round(bn_rec.eth_vol, 4),
+                usdt_volume=round(bn_rec.usdt_vol, 2)
             ),
             uniswap=ExchangePriceData(
-                price=round(record.price_u, 2),
-                eth_volume=round(record.eth_vol_u, 4),
-                usdt_volume=round(record.usdt_vol_u, 2)
+                price=round(uni_rec.price, 2),
+                eth_volume=round(uni_rec.eth_vol, 4),
+                usdt_volume=round(uni_rec.usdt_vol, 2)
             ),
-            price_diff=round(record.price_b - record.price_u, 2)
+            price_diff=round(price_diff, 2)
         )
     )
 
 
 @router.get("/candles")
 async def get_price_candles(
-    start_time: Optional[datetime] = Query(None, description="开始时间"),
-    end_time: Optional[datetime] = Query(None, description="结束时间"),
-    interval: str = Query("1h", description="时间间隔: 1h, 4h, 1d"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
+    interval: str = Query("1h"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    获取K线数据 (OHLC)
+    按时间间隔聚合 OHLC 数据，先获取两表数据再合成K线
     """
-    # 获取原始数据
-    query = select(TradeData).order_by(TradeData.time_align)
+
+    query_bn = select(BinanceData).order_by(BinanceData.time_align)
+    query_uni = select(UniswapData).order_by(UniswapData.time_align)
+
     if start_time:
-        query = query.where(TradeData.time_align >= start_time)
+        query_bn = query_bn.where(BinanceData.time_align >= start_time)
+        query_uni = query_uni.where(UniswapData.time_align >= start_time)
     if end_time:
-        query = query.where(TradeData.time_align <= end_time)
-    
-    result = await db.execute(query)
-    records = result.scalars().all()
-    
-    if not records:
+        query_bn = query_bn.where(BinanceData.time_align <= end_time)
+        query_uni = query_uni.where(UniswapData.time_align <= end_time)
+
+    result_bn = await db.execute(query_bn)
+    result_uni = await db.execute(query_uni)
+
+    records_bn = result_bn.scalars().all()
+    records_uni = result_uni.scalars().all()
+
+    if not records_bn or not records_uni:
         return {"success": True, "data": []}
-        
-    # Manual aggregation
-    candles = {} # key: timestamp_str, value: {binance: {o,h,l,c}, uniswap: {o,h,l,c}}
-    
-    from datetime import timedelta
-    
-    for record in records:
+
+    candles = {}
+    for record in records_bn:
         dt = record.time_align
-        
-        # Determine bucket
         if interval == "1h":
-            bucket_dt = dt.replace(minute=0, second=0, microsecond=0)
+            bucket = dt.replace(minute=0, second=0, microsecond=0)
         elif interval == "4h":
             hour = (dt.hour // 4) * 4
-            bucket_dt = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+            bucket = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
         elif interval == "1d":
-            bucket_dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            bucket = dt.replace(hour=0, minute=0, second=0, microsecond=0)
         else:
-            bucket_dt = dt.replace(minute=0, second=0, microsecond=0) # Default 1h
-            
-        key = bucket_dt.isoformat()
-        
+            bucket = dt.replace(minute=0, second=0, microsecond=0)
+        key = bucket.isoformat()
+
         if key not in candles:
             candles[key] = {
                 "time": key,
-                "binance": {"open": record.price_b, "high": record.price_b, "low": record.price_b, "close": record.price_b},
-                "uniswap": {"open": record.price_u, "high": record.price_u, "low": record.price_u, "close": record.price_u}
+                "binance": {"open": record.price, "high": record.price, "low": record.price, "close": record.price},
+                "uniswap": {"open": None, "high": None, "low": None, "close": None}
             }
         else:
-            # Update Binance
             c = candles[key]["binance"]
-            c["high"] = max(c["high"], record.price_b)
-            c["low"] = min(c["low"], record.price_b)
-            c["close"] = record.price_b
-            
-            # Update Uniswap
+            c["high"] = max(c["high"], record.price)
+            c["low"] = min(c["low"], record.price)
+            c["close"] = record.price
+
+    for record in records_uni:
+        dt = record.time_align
+        if interval == "1h":
+            bucket = dt.replace(minute=0, second=0, microsecond=0)
+        elif interval == "4h":
+            hour = (dt.hour // 4) * 4
+            bucket = dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+        elif interval == "1d":
+            bucket = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            bucket = dt.replace(minute=0, second=0, microsecond=0)
+        key = bucket.isoformat()
+
+        if key not in candles:
+            candles[key] = {
+                "time": key,
+                "binance": {"open": None, "high": None, "low": None, "close": None},
+                "uniswap": {"open": record.price, "high": record.price, "low": record.price, "close": record.price}
+            }
+        else:
             c = candles[key]["uniswap"]
-            c["high"] = max(c["high"], record.price_u)
-            c["low"] = min(c["low"], record.price_u)
-            c["close"] = record.price_u
-            
-    return {
-        "success": True,
-        "data": list(candles.values())
-    }
+            c["high"] = max(c["high"], record.price) if c["high"] else record.price
+            c["low"] = min(c["low"], record.price) if c["low"] else record.price
+            c["close"] = record.price
+
+    return {"success": True, "data": list(candles.values())}

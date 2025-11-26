@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from ..database import get_db
-from ..models import TradeData
+from ..models import BinanceData, UniswapData
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/liquidity", tags=["Liquidity"])
@@ -22,56 +22,53 @@ class LiquidityAnalysisResponse(BaseModel):
 
 @router.get("/analysis", response_model=LiquidityAnalysisResponse)
 async def get_liquidity_analysis(
-    start_time: Optional[datetime] = Query(None, description="Start time"),
-    end_time: Optional[datetime] = Query(None, description="End time"),
-    interval: str = Query("1h", description="Aggregation interval: 1h, 4h, 1d"),
+    start_time: Optional[datetime] = Query(None),
+    end_time: Optional[datetime] = Query(None),
+    interval: str = Query("1h"),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get liquidity analysis data based on volume.
-    Liquidity is approximated by the sum of ETH and USDT volume.
+    基于 binance_data 和 uniswap_data 表计算流动性
     """
-    
-    # Determine time grouping based on interval
-    # Note: SQLite (which might be used locally) has different date functions than PostgreSQL
-    # Assuming PostgreSQL for now based on readme, but will try to write generic SQL or use Python aggregation if needed.
-    # For simplicity and compatibility, let's fetch data and aggregate in Python for now, 
-    # or use simple grouping if the dataset is large. 
-    # Given the requirements, let's try to return raw data points if the range is small, 
-    # or aggregate if it's large. 
-    # Let's stick to a simple query first.
-    
-    query = select(TradeData).order_by(TradeData.time_align)
-    
-    if start_time:
-        query = query.where(TradeData.time_align >= start_time)
-    if end_time:
-        query = query.where(TradeData.time_align <= end_time)
-        
-    # Limit to avoid fetching too much data if no time range
-    if not start_time and not end_time:
-        query = query.limit(1000)
+    query_bn = select(BinanceData).order_by(BinanceData.time_align)
+    query_uni = select(UniswapData).order_by(UniswapData.time_align)
 
-    result = await db.execute(query)
-    records = result.scalars().all()
-    
+    if start_time:
+        query_bn = query_bn.where(BinanceData.time_align >= start_time)
+        query_uni = query_uni.where(UniswapData.time_align >= start_time)
+    if end_time:
+        query_bn = query_bn.where(BinanceData.time_align <= end_time)
+        query_uni = query_uni.where(UniswapData.time_align <= end_time)
+
+    # 限制防止数据过多，这里示例简单处理
+    result_bn = await db.execute(query_bn.limit(5000))
+    result_uni = await db.execute(query_uni.limit(5000))
+
+    records_bn = result_bn.scalars().all()
+    records_uni = result_uni.scalars().all()
+
+    # 构造时间索引字典
+    bn_map = {r.time_align: r for r in records_bn}
+    uni_map = {r.time_align: r for r in records_uni}
+    time_points = sorted(set(bn_map.keys()).union(uni_map.keys()))
+
     data = []
-    for record in records:
-        # Approximate liquidity as (ETH volume * Price) + USDT volume
-        # Or just sum of volumes if we want a rough indicator. 
-        # Let's use USDT volume + (ETH volume * Price) for total value locked/traded approximation.
-        
-        binance_liq = record.usdt_vol_b + (record.eth_vol_b * record.price_b)
-        uniswap_liq = record.usdt_vol_u + (record.eth_vol_u * record.price_u)
-        
+    for t in time_points:
+        bn_rec = bn_map.get(t)
+        uni_rec = uni_map.get(t)
+
+        binance_liq = 0.0
+        uniswap_liq = 0.0
+        if bn_rec:
+            binance_liq = bn_rec.usdt_vol + (bn_rec.eth_vol * bn_rec.price)
+        if uni_rec:
+            uniswap_liq = uni_rec.usdt_vol + (uni_rec.eth_vol * uni_rec.price)
+
         data.append(LiquidityPoint(
-            time=record.time_align.isoformat(),
+            time=t.isoformat(),
             binance_liquidity=round(binance_liq, 2),
             uniswap_liquidity=round(uniswap_liq, 2),
             total_liquidity=round(binance_liq + uniswap_liq, 2)
         ))
-        
-    return LiquidityAnalysisResponse(
-        success=True,
-        data=data
-    )
+
+    return LiquidityAnalysisResponse(success=True, data=data)
