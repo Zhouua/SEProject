@@ -8,20 +8,18 @@
         class="nav-item"
         :class="{ 'active': isActive(item.path) }"
       >
-        <el-icon :size="16" class="nav-icon">
-          <component :is="item.icon" />
-        </el-icon>
+        <component :is="item.icon" :size="20" stroke-width="2" class="nav-icon" />
         <span class="nav-text">{{ t(item.nameKey) }}</span>
       </router-link>
     </nav>
 
     <div class="sidebar-footer">
       <router-link to="/help" class="nav-item">
-        <el-icon :size="16" class="nav-icon"><QuestionFilled /></el-icon>
+        <HelpCircle :size="20" stroke-width="2" class="nav-icon" />
         <span class="nav-text">{{ t('sidebar.helpCenter') }}</span>
       </router-link>
       <router-link to="/settings" class="nav-item">
-        <el-icon :size="16" class="nav-icon"><Setting /></el-icon>
+        <Settings :size="20" stroke-width="2" class="nav-icon" />
         <span class="nav-text">{{ t('sidebar.settings') }}</span>
       </router-link>
     </div>
@@ -29,29 +27,28 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { 
-  Grid, 
-  TrendCharts, 
-  DataAnalysis,
-  Tickets,
-  Histogram,
-  DataLine,
-  QuestionFilled,
-  Setting
-} from '@element-plus/icons-vue'
+  LayoutGrid, 
+  TrendingUp, 
+  BarChart2, 
+  Activity, 
+  Droplets,
+  HelpCircle,
+  Settings,
+  Hexagon
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const { t } = useI18n()
 
 const menuItems = [
-  { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: Grid },
-  { nameKey: 'sidebar.priceComparison.title', path: '/price-comparison', icon: TrendCharts },
-  { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: DataAnalysis },
-  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Histogram },
-  { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: DataLine },
+  { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: LayoutGrid },
+  { nameKey: 'sidebar.priceComparison.title', path: '/price-comparison', icon: TrendingUp },
+  { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: BarChart2 },
+  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Activity },
+  { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: Droplets },
 ]
 
 const isActive = (path) => {
@@ -63,34 +60,48 @@ const isActive = (path) => {
 .sidebar {
   width: 100%;
   height: 100%;
-  background-color: #ffffff;
+  background-color: var(--color-bg-secondary);
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: var(--spacing-lg) var(--spacing-md);
+  border-right: 1px solid var(--color-border);
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 32px 12px;
+  color: var(--color-text-primary);
+  
+  .logo-icon {
+    color: var(--color-accent);
+  }
+  
+  .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
 }
 
 .nav-menu {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 0 12px;
+  gap: 8px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  color: #666666;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
   text-decoration: none;
-  transition: all 0.3s;
+  transition: all 0.2s ease;
   cursor: pointer;
-  
-  .nav-icon {
-    flex-shrink: 0;
-  }
   
   .nav-text {
     font-size: 14px;
@@ -98,22 +109,26 @@ const isActive = (path) => {
   }
   
   &:hover {
-    background-color: #f5f5f5;
-    color: #1a1a1a;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
   }
   
   &.active {
-    background-color: #E8F5E9;
-    color: #4CAF50;
-    font-weight: 600;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    
+    .nav-icon {
+      color: var(--color-accent);
+    }
   }
 }
 
 .sidebar-footer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px 12px 0;
-  border-top: 1px solid #e0e0e0;
+  gap: 8px;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
 }
 </style>

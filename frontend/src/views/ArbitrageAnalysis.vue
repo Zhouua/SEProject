@@ -1,84 +1,102 @@
 <template>
-  <div class="arbitrage-analysis">
-    <div class="header">
-      <h2>{{ t('sidebar.arbitrage.title') }}</h2>
+  <div class="page-container">
+    <div class="page-header">
+      <h2 class="page-title">{{ t('sidebar.arbitrage.title') }}</h2>
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          range-separator="-"
+          :start-placeholder="t('common.startDate')"
+          :end-placeholder="t('common.endDate')"
           :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
           :disabled-date="disabledDate"
           value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
+          class="custom-picker"
         />
       </div>
     </div>
 
-    <div class="stats-cards">
-      <div class="card">
-        <h3>Total Opportunities</h3>
-        <div class="value">{{ totalOpportunities }}</div>
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon"><Activity :size="24" /></div>
+        <div class="stat-content">
+          <span class="label">Total Opportunities</span>
+          <span class="value">{{ totalOpportunities }}</span>
+        </div>
       </div>
-      <div class="card">
-        <h3>Total Potential Profit</h3>
-        <div class="value">${{ totalProfit.toFixed(2) }}</div>
+      <div class="card stat-card">
+        <div class="stat-icon"><DollarSign :size="24" /></div>
+        <div class="stat-content">
+          <span class="label">Total Potential Profit</span>
+          <span class="value text-up">${{ totalProfit.toFixed(2) }}</span>
+        </div>
       </div>
-      <div class="card">
-        <h3>Avg. Profit / Trade</h3>
-        <div class="value">${{ avgProfit.toFixed(2) }}</div>
+      <div class="card stat-card">
+        <div class="stat-icon"><TrendingUp :size="24" /></div>
+        <div class="stat-content">
+          <span class="label">Avg. Profit / Trade</span>
+          <span class="value">${{ avgProfit.toFixed(2) }}</span>
+        </div>
       </div>
     </div>
 
-    <div class="content-grid">
-      <div class="chart-section">
-        <div ref="chartRef" style="width: 100%; height: 400px;"></div>
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <h3 class="card-title">Daily Profit Trend</h3>
+        <div ref="chartRef" style="width: 100%; height: 350px;"></div>
       </div>
       
-      <div class="chart-section">
-        <div ref="pieChartRef" style="width: 100%; height: 400px;"></div>
+      <div class="card chart-card">
+        <h3 class="card-title">Profit Distribution</h3>
+        <div ref="pieChartRef" style="width: 100%; height: 350px;"></div>
       </div>
     </div>
       
-    <div class="table-section">
-        <el-table 
-          :data="opportunities" 
-          style="width: 100%" 
-          height="400"
-          v-loading="tableLoading"
-        >
-          <el-table-column prop="time" label="时间" width="180">
-            <template #default="scope">
-              {{ new Date(scope.row.time).toLocaleString() }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="strategy" label="策略" width="250" />
-          <el-table-column prop="eth_volume_uniswap" label="交易量 (ETH)" width="140">
-            <template #default="scope">
-              {{ scope.row.eth_volume_uniswap?.toFixed(4) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="potential_profit_usdt" label="利润 (USDT)" sortable>
-            <template #default="scope">
-              <span class="profit-text">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-        
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="pageSize"
-            :total="totalOpportunities"
-            :page-sizes="[20, 50, 100]"
-            layout="total, sizes, prev, pager, next"
-            @current-change="handlePageChange"
-            @size-change="fetchTableData"
-          />
-        </div>
+    <div class="card table-card">
+      <h3 class="card-title">Opportunity Log</h3>
+      <el-table 
+        :data="opportunities" 
+        style="width: 100%" 
+        v-loading="tableLoading"
+        class="custom-table"
+      >
+        <el-table-column prop="time" label="Time" width="180">
+          <template #default="scope">
+            <span class="text-secondary">{{ new Date(scope.row.time).toLocaleString() }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="strategy" label="Strategy" width="250">
+           <template #default="scope">
+            <span class="strategy-tag">{{ scope.row.strategy || 'Triangular Arbitrage' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="eth_volume_uniswap" label="Volume (ETH)" width="140">
+          <template #default="scope">
+            {{ scope.row.eth_volume_uniswap?.toFixed(4) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="potential_profit_usdt" label="Profit (USDT)" sortable>
+          <template #default="scope">
+            <span class="text-up font-medium">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="totalOpportunities"
+          :page-sizes="[20, 50, 100]"
+          layout="prev, pager, next"
+          @current-change="handlePageChange"
+          @size-change="fetchTableData"
+          background
+        />
       </div>
+    </div>
   </div>
 </template>
 
@@ -87,13 +105,13 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import { Activity, DollarSign, TrendingUp } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const chartRef = ref(null)
 const pieChartRef = ref(null)
 let chart = null
 let pieChart = null
-// 使用标准ISO格式初始化日期，确保浏览器兼容性
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const opportunities = ref([])
 const totalOpportunities = ref(0)
@@ -101,7 +119,6 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const dailyStats = ref([])
 
-// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
   const maxDate = new Date('2025-09-30T23:59:59')
@@ -131,23 +148,11 @@ const fetchData = async () => {
   loading.value = true
   try {
     const [start, end] = dateRange.value
-    console.log('Fetching arbitrage data:', start, end)
-    
-    // 1. Fetch aggregated stats for chart (fast)
     dailyStats.value = await api.getDailyArbitrageStats(start, end)
     updateChart()
-    
-    // 2. Fetch paginated table data
     await fetchTableData()
-    
-    // 3. Update Pie Chart (Need full data or distribution stats, for now approximate from table or fetch all for stats)
-    // To be accurate, we should fetch all opportunities (lightweight) or add a stats endpoint.
-    // Let's fetch a larger batch for distribution analysis (e.g. 1000) or just use what we have if pagination is small.
-    // Better: fetch all IDs and profits for stats.
-    // For now, let's use the daily stats to estimate or fetch 1000 items for the pie chart sample.
     const sampleData = await api.getArbitrageOpportunities(start, end, 0, 1000)
     updatePieChart(sampleData.data)
-    
   } catch (error) {
     console.error('Error fetching data:', error)
   } finally {
@@ -162,14 +167,9 @@ const fetchTableData = async () => {
   try {
     const [start, end] = dateRange.value
     const offset = (currentPage.value - 1) * pageSize.value
-    
     const response = await api.getArbitrageOpportunities(start, end, 0, pageSize.value, offset)
     opportunities.value = response.data || []
-    // Note: Backend currently returns count of returned items, not total count. 
-    // We might need to update backend to return total count for pagination.
-    // For now, let's assume we can get total from daily stats sum of counts.
     totalOpportunities.value = dailyStats.value.reduce((sum, item) => sum + item.count, 0)
-    
   } catch (error) {
     console.error('Error fetching table data:', error)
   } finally {
@@ -189,25 +189,37 @@ const updateChart = () => {
   const profits = dailyStats.value.map(item => item.total_profit)
 
   const option = {
-    title: {
-      text: 'Daily Arbitrage Profit',
-      left: 'center'
-    },
     tooltip: {
-      trigger: 'axis'
+      trigger: 'axis',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderColor: '#E5E7EB',
+      textStyle: { color: '#111827' }
     },
+    grid: { left: '3%', right: '3%', bottom: '3%', top: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: dates
+      data: dates,
+      axisLine: { lineStyle: { color: '#E5E7EB' } },
+      axisLabel: { color: '#9CA3AF' },
+      splitLine: { show: false }
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      splitLine: { lineStyle: { color: '#F3F4F6' } },
+      axisLabel: { color: '#9CA3AF' }
     },
     series: [
       {
         data: profits,
         type: 'bar',
-        itemStyle: { color: '#4CAF50' }
+        itemStyle: { 
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#10B981' },
+            { offset: 1, color: '#34D399' }
+          ]),
+          borderRadius: [4, 4, 0, 0]
+        },
+        barMaxWidth: 40
       }
     ]
   }
@@ -228,34 +240,25 @@ const updatePieChart = (data) => {
   })
   
   const option = {
-    title: {
-      text: 'Profit Distribution',
-      left: 'center'
-    },
-    tooltip: {
-      trigger: 'item'
-    },
-    legend: {
-      orient: 'vertical',
-      left: 'left'
-    },
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0, icon: 'circle', textStyle: { color: '#6B7280' } },
     series: [
       {
         name: 'Profit Range',
         type: 'pie',
-        radius: '50%',
+        radius: ['40%', '70%'],
+        center: ['50%', '45%'],
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: { show: false },
         data: [
-          { value: low, name: '< $10' },
-          { value: mid, name: '$10 - $50' },
-          { value: high, name: '> $50' }
-        ],
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        }
+          { value: low, name: '< $10', itemStyle: { color: '#9CA3AF' } },
+          { value: mid, name: '$10 - $50', itemStyle: { color: '#3B82F6' } },
+          { value: high, name: '> $50', itemStyle: { color: '#F59E0B' } }
+        ]
       }
     ]
   }
@@ -271,70 +274,126 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.arbitrage-analysis {
-  padding: 20px;
+<style lang="scss" scoped>
+.page-container {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  margin-bottom: var(--spacing-xl);
+  
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
 }
 
-.stats-cards {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-  text-align: center;
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--color-bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-primary);
+  }
+  
+  .stat-content {
+    display: flex;
+    flex-direction: column;
+    
+    .label {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      margin-bottom: 4px;
+    }
+    
+    .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+    }
+  }
 }
 
-.card h3 {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.card .value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-}
-
-.content-grid {
+.charts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
-.chart-section, .table-section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+.chart-card {
+  padding: var(--spacing-lg);
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+  }
 }
 
-.profit-text {
-  color: #4CAF50;
-  font-weight: bold;
+.table-card {
+  padding: var(--spacing-lg);
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+  }
 }
 
 .pagination-container {
-  margin-top: 20px;
+  margin-top: var(--spacing-lg);
   display: flex;
   justify-content: flex-end;
+}
+
+.strategy-tag {
+  background: var(--color-bg-tertiary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Custom Element Plus Overrides */
+:deep(.el-table) {
+  --el-table-border-color: var(--color-border);
+  --el-table-header-bg-color: var(--color-bg-primary);
+  --el-table-row-hover-bg-color: var(--color-bg-tertiary);
+}
+
+:deep(.el-table th.el-table__cell) {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+:deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
+  background-color: var(--color-text-primary);
+  color: white;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="header">
     <div class="header-left">
-      <!-- 侧边栏切换按钮 - 优雅的汉堡菜单 -->
+      <!-- 侧边栏切换按钮 -->
       <div class="menu-toggle" @click="toggleSidebar">
         <div class="hamburger" :class="{ active: sidebarOpen }">
           <span></span>
@@ -48,7 +48,7 @@
         <span class="notification-badge" v-if="hasNotifications"></span>
       </div>
       <div class="user-avatar">
-        <img src="https://i.pravatar.cc/150?img=12" alt="User Avatar" />
+        <img src="@/assets/avatar.png" alt="User Avatar" />
       </div>
     </div>
   </div>
@@ -401,30 +401,30 @@ const formatTime = (time) => {
 
 .header-icon {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #4CAF50;
+  background-color: #4a4a4a;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s;
   
   .el-icon {
-    font-size: 20px;
+    font-size: 18px;
     color: #ffffff;
   }
   
   &:hover {
-    background-color: #66BB6A;
+    background-color: #5a5a5a;
     transform: scale(1.05);
   }
   
   .notification-badge {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
     width: 8px;
     height: 8px;
     background-color: #F44336;
@@ -433,7 +433,7 @@ const formatTime = (time) => {
   
   &.lang-switch {
     .lang-text {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #ffffff;
     }

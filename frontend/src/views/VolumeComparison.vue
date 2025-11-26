@@ -1,77 +1,69 @@
 <template>
-  <div class="volume-comparison">
-    <div class="header">
-      <h2>交易量对比分析</h2>
-      <p class="subtitle">对比 Binance 和 Uniswap 的 ETH 和 USDT 交易量</p>
+  <div class="page-container">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">{{ t('sidebar.volumeComparison') }}</h2>
+        <p class="page-subtitle">Compare trading volumes across exchanges</p>
+      </div>
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          range-separator="-"
+          :start-placeholder="t('common.startDate')"
+          :end-placeholder="t('common.endDate')"
           :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
           :disabled-date="disabledDate"
           value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
+          class="custom-picker"
         />
       </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <div class="stats-cards">
-      <div class="stat-card">
-        <div class="stat-icon binance">
-          <el-icon><TrendCharts /></el-icon>
-        </div>
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-icon binance"><BarChart2 :size="24" /></div>
         <div class="stat-content">
-          <p class="stat-label">Binance 总交易量</p>
-          <h3 class="stat-value">{{ formatNumber(totalVolumeBinance) }} ETH</h3>
-          <p class="stat-sub">≈ ${{ formatNumber(totalUsdtBinance) }}</p>
+          <span class="label">Binance Volume</span>
+          <span class="value">{{ formatNumber(totalVolumeBinance) }} ETH</span>
+          <span class="sub-value">≈ ${{ formatNumber(totalUsdtBinance) }}</span>
         </div>
       </div>
       
-      <div class="stat-card">
-        <div class="stat-icon uniswap">
-          <el-icon><DataAnalysis /></el-icon>
-        </div>
+      <div class="card stat-card">
+        <div class="stat-icon uniswap"><PieChart :size="24" /></div>
         <div class="stat-content">
-          <p class="stat-label">Uniswap 总交易量</p>
-          <h3 class="stat-value">{{ formatNumber(totalVolumeUniswap) }} ETH</h3>
-          <p class="stat-sub">≈ ${{ formatNumber(totalUsdtUniswap) }}</p>
+          <span class="label">Uniswap Volume</span>
+          <span class="value">{{ formatNumber(totalVolumeUniswap) }} ETH</span>
+          <span class="sub-value">≈ ${{ formatNumber(totalUsdtUniswap) }}</span>
         </div>
       </div>
 
-      <div class="stat-card">
-        <div class="stat-icon ratio">
-          <el-icon><Histogram /></el-icon>
-        </div>
+      <div class="card stat-card">
+        <div class="stat-icon ratio"><Percent :size="24" /></div>
         <div class="stat-content">
-          <p class="stat-label">交易量比率</p>
-          <h3 class="stat-value">{{ volumeRatio }}</h3>
-          <p class="stat-sub">Binance / Uniswap</p>
+          <span class="label">Volume Ratio</span>
+          <span class="value">{{ volumeRatio }}</span>
+          <span class="sub-value">Binance / Uniswap</span>
         </div>
       </div>
     </div>
 
-    <!-- 图表区域 -->
     <div class="charts-grid">
-      <!-- ETH 交易量对比 -->
-      <div class="chart-card">
-        <h3 class="chart-title">ETH 交易量对比</h3>
+      <div class="card chart-card">
+        <h3 class="card-title">ETH Volume Comparison</h3>
         <div ref="ethVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
-      <!-- USDT 交易量对比 -->
-      <div class="chart-card">
-        <h3 class="chart-title">USDT 交易量对比</h3>
+      <div class="card chart-card">
+        <h3 class="card-title">USDT Volume Comparison</h3>
         <div ref="usdtVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
-      <!-- 交易量比率图 -->
-      <div class="chart-card full-width">
-        <h3 class="chart-title">ETH vs USDT 交易量关系</h3>
-        <p class="chart-desc">展示每笔交易中 ETH 数量与 USDT 金额的关系（应该成正比）</p>
+      <div class="card chart-card full-width">
+        <h3 class="card-title">Volume Correlation (ETH vs USDT)</h3>
+        <p class="chart-desc">Correlation between trade size and value</p>
         <div ref="volumeRatioChartRef" style="width: 100%; height: 350px;"></div>
       </div>
     </div>
@@ -80,16 +72,16 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
-import { TrendCharts, DataAnalysis, Histogram } from '@element-plus/icons-vue'
+import { BarChart2, PieChart, Percent } from 'lucide-vue-next'
 
-// 使用标准ISO格式初始化日期，确保浏览器兼容性
+const { t } = useI18n()
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const priceData = ref([])
 
-// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
   const maxDate = new Date('2025-09-30T23:59:59')
@@ -104,7 +96,6 @@ let ethVolumeChart = null
 let usdtVolumeChart = null
 let volumeRatioChart = null
 
-// 计算总交易量
 const totalVolumeBinance = computed(() => {
   return priceData.value.reduce((sum, item) => sum + (item.binance?.eth_volume || 0), 0)
 })
@@ -137,37 +128,23 @@ const fetchData = async () => {
   
   const [start, end] = dateRange.value
   
-  // Check cache first
   const cachedData = store.getCachedPriceData(start, end)
   if (cachedData) {
-    console.log('Using cached price data for volume')
     priceData.value = cachedData
     updateCharts()
     return
   }
   
-  console.log('Fetching volume data:', start, end) // 调试日志
-  
   const data = await api.getHistoricalPrices(start, end, 50000)
-  console.log('Received data:', data?.length, 'records') // 调试日志
-  
-  // Cache the data
   store.setPriceData(data, start, end)
-  
   priceData.value = data
   updateCharts()
 }
 
 const initCharts = () => {
-  if (ethVolumeChartRef.value) {
-    ethVolumeChart = echarts.init(ethVolumeChartRef.value)
-  }
-  if (usdtVolumeChartRef.value) {
-    usdtVolumeChart = echarts.init(usdtVolumeChartRef.value)
-  }
-  if (volumeRatioChartRef.value) {
-    volumeRatioChart = echarts.init(volumeRatioChartRef.value)
-  }
+  if (ethVolumeChartRef.value) ethVolumeChart = echarts.init(ethVolumeChartRef.value)
+  if (usdtVolumeChartRef.value) usdtVolumeChart = echarts.init(usdtVolumeChartRef.value)
+  if (volumeRatioChartRef.value) volumeRatioChart = echarts.init(volumeRatioChartRef.value)
 
   window.addEventListener('resize', () => {
     ethVolumeChart?.resize()
@@ -177,12 +154,7 @@ const initCharts = () => {
 }
 
 const updateCharts = () => {
-  console.log('updateCharts called, priceData:', priceData.value?.length) // 调试日志
-  
-  if (!priceData.value || priceData.value.length === 0) {
-    console.warn('No data to display')
-    return
-  }
+  if (!priceData.value || priceData.value.length === 0) return
 
   const times = priceData.value.map(item => item.time)
   const ethBinance = priceData.value.map(item => item.binance?.eth_volume || 0)
@@ -190,40 +162,23 @@ const updateCharts = () => {
   const usdtBinance = priceData.value.map(item => item.binance?.usdt_volume || 0)
   const usdtUniswap = priceData.value.map(item => item.uniswap?.usdt_volume || 0)
 
-  // ETH 交易量图表
   if (ethVolumeChart) {
     ethVolumeChart.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'cross' }
-      },
-      legend: {
-        data: ['Binance', 'Uniswap'],
-        bottom: 10
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        containLabel: true
-      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+      legend: { bottom: 0, icon: 'circle', textStyle: { color: '#6B7280' } },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
       xAxis: {
         type: 'category',
         data: times,
-        axisLabel: {
-          rotate: 45,
-          formatter: (value) => {
-            const date = new Date(value)
-            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-          }
-        }
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { show: false },
+        splitLine: { show: false }
       },
       yAxis: {
         type: 'value',
-        name: 'ETH 数量',
-        axisLabel: {
-          formatter: '{value}'
-        }
+        name: 'ETH',
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       series: [
         {
@@ -231,11 +186,12 @@ const updateCharts = () => {
           type: 'line',
           data: ethBinance,
           smooth: true,
-          lineStyle: { color: '#f0b90b', width: 2 },
+          showSymbol: false,
+          lineStyle: { color: '#F59E0B', width: 2 },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(240, 185, 11, 0.3)' },
-              { offset: 1, color: 'rgba(240, 185, 11, 0.05)' }
+              { offset: 0, color: 'rgba(245, 158, 11, 0.2)' },
+              { offset: 1, color: 'rgba(245, 158, 11, 0)' }
             ])
           }
         },
@@ -244,11 +200,12 @@ const updateCharts = () => {
           type: 'line',
           data: ethUniswap,
           smooth: true,
-          lineStyle: { color: '#ff007a', width: 2 },
+          showSymbol: false,
+          lineStyle: { color: '#EC4899', width: 2 },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: 'rgba(255, 0, 122, 0.3)' },
-              { offset: 1, color: 'rgba(255, 0, 122, 0.05)' }
+              { offset: 0, color: 'rgba(236, 72, 153, 0.2)' },
+              { offset: 1, color: 'rgba(236, 72, 153, 0)' }
             ])
           }
         }
@@ -256,41 +213,27 @@ const updateCharts = () => {
     })
   }
 
-  // USDT 交易量图表
   if (usdtVolumeChart) {
     usdtVolumeChart.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'cross' }
-      },
-      legend: {
-        data: ['Binance', 'Uniswap'],
-        bottom: 10
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        containLabel: true
-      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+      legend: { bottom: 0, icon: 'circle', textStyle: { color: '#6B7280' } },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
       xAxis: {
         type: 'category',
         data: times,
-        axisLabel: {
-          rotate: 45,
-          formatter: (value) => {
-            const date = new Date(value)
-            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-          }
-        }
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { show: false },
+        splitLine: { show: false }
       },
       yAxis: {
         type: 'value',
-        name: 'USDT 金额',
-        axisLabel: {
+        name: 'USDT',
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { 
+          color: '#9CA3AF',
           formatter: (value) => {
-            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
-            if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
+            if (value >= 1000000) return (value / 1000000).toFixed(0) + 'M'
+            if (value >= 1000) return (value / 1000).toFixed(0) + 'K'
             return value
           }
         }
@@ -300,19 +243,18 @@ const updateCharts = () => {
           name: 'Binance',
           type: 'bar',
           data: usdtBinance,
-          itemStyle: { color: '#f0b90b' }
+          itemStyle: { color: '#F59E0B' }
         },
         {
           name: 'Uniswap',
           type: 'bar',
           data: usdtUniswap,
-          itemStyle: { color: '#ff007a' }
+          itemStyle: { color: '#EC4899' }
         }
       ]
     })
   }
 
-  // 交易量关系散点图
   if (volumeRatioChart) {
     const scatterData = priceData.value.map(item => [
       item.binance?.eth_volume || 0,
@@ -322,43 +264,33 @@ const updateCharts = () => {
     volumeRatioChart.setOption({
       tooltip: {
         trigger: 'item',
-        formatter: (params) => {
-          return `ETH: ${params.value[0].toFixed(2)}<br/>USDT: ${params.value[1].toFixed(2)}`
-        }
+        formatter: (params) => `ETH: ${params.value[0].toFixed(2)}<br/>USDT: ${params.value[1].toFixed(2)}`
       },
-      grid: {
-        left: '10%',
-        right: '10%',
-        bottom: '10%',
-        top: '10%',
-        containLabel: true
-      },
+      grid: { left: '5%', right: '5%', bottom: '10%', top: '10%', containLabel: true },
       xAxis: {
         type: 'value',
-        name: 'ETH 交易量',
+        name: 'ETH Volume',
         nameLocation: 'middle',
-        nameGap: 30
+        nameGap: 30,
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { color: '#9CA3AF' },
+        splitLine: { show: false }
       },
       yAxis: {
         type: 'value',
-        name: 'USDT 交易量',
+        name: 'USDT Volume',
         nameLocation: 'middle',
         nameGap: 50,
-        axisLabel: {
-          formatter: (value) => {
-            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
-            if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
-            return value
-          }
-        }
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       series: [{
         type: 'scatter',
         data: scatterData,
-        symbolSize: 8,
+        symbolSize: 6,
         itemStyle: {
-          color: '#4CAF50',
-          opacity: 0.6
+          color: '#10B981',
+          opacity: 0.5
         }
       }]
     })
@@ -374,120 +306,91 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.volume-comparison {
-  padding: 20px;
+.page-container {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.header {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 20px;
-
-  h2 {
-    margin: 0 0 8px 0;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  
+  .page-title {
     font-size: 24px;
-    color: #1a1a1a;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
   }
-
-  .subtitle {
-    margin: 0 0 16px 0;
-    color: #666;
+  
+  .page-subtitle {
     font-size: 14px;
+    color: var(--color-text-secondary);
   }
 }
 
-.stats-cards {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .stat-card {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
-  gap: 16px;
-
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  
   .stat-icon {
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
     color: white;
-
-    &.binance {
-      background: linear-gradient(135deg, #f0b90b 0%, #f8d12f 100%);
-    }
-
-    &.uniswap {
-      background: linear-gradient(135deg, #ff007a 0%, #ff4d9f 100%);
-    }
-
-    &.ratio {
-      background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
-    }
+    
+    &.binance { background: linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%); }
+    &.uniswap { background: linear-gradient(135deg, #EC4899 0%, #F472B6 100%); }
+    &.ratio { background: linear-gradient(135deg, #10B981 0%, #34D399 100%); }
   }
-
+  
   .stat-content {
-    flex: 1;
-
-    .stat-label {
-      margin: 0 0 4px 0;
-      font-size: 13px;
-      color: #999;
-    }
-
-    .stat-value {
-      margin: 0 0 4px 0;
-      font-size: 22px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .stat-sub {
-      margin: 0;
-      font-size: 12px;
-      color: #666;
-    }
+    display: flex;
+    flex-direction: column;
+    
+    .label { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
+    .value { font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 2px; }
+    .sub-value { font-size: 12px; color: var(--color-text-tertiary); }
   }
 }
 
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: var(--spacing-lg);
+  
+  .full-width {
+    grid-column: 1 / -1;
+  }
+}
 
-  .chart-card {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    &.full-width {
-      grid-column: 1 / -1;
-    }
-
-    .chart-title {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-
-    .chart-desc {
-      margin: 0 0 16px 0;
-      font-size: 13px;
-      color: #666;
-    }
+.chart-card {
+  padding: var(--spacing-lg);
+  
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .chart-desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
   }
 }
 </style>

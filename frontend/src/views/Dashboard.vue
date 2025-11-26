@@ -132,7 +132,7 @@
                   <CaretTop v-if="priceChange >= 0" />
                   <CaretBottom v-else />
                 </el-icon>
-                +${{ Math.abs(priceChangeAmount).toLocaleString() }} ({{ priceChange }}%)
+                {{ priceChange >= 0 ? '+' : '' }}${{ Math.abs(priceChangeAmount).toLocaleString() }} ({{ priceChange }}%)
               </span>
             </div>
             
@@ -397,22 +397,59 @@ const updatePriceChart = (data) => {
       data: prices,
       type: 'line',
       smooth: true,
-      symbol: 'none',
+      symbol: 'circle',
+      symbolSize: 0,
       lineStyle: { color: '#4CAF50', width: 2 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: 'rgba(76, 175, 80, 0.3)' },
           { offset: 1, color: 'rgba(76, 175, 80, 0.05)' }
         ])
+      },
+      emphasis: {
+        focus: 'series',
+        itemStyle: {
+          color: '#fff',
+          borderColor: '#4CAF50',
+          borderWidth: 3,
+          shadowBlur: 10,
+          shadowColor: 'rgba(76, 175, 80, 0.5)'
+        },
+        symbolSize: 12
       }
     }],
     tooltip: {
       trigger: 'axis',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e0e0e0',
+      borderWidth: 1,
+      textStyle: {
+        color: '#333',
+        fontSize: 12
+      },
+      padding: 12,
+      formatter: function(params) {
+        const param = params[0]
+        const date = new Date(param.axisValue)
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`
+        const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+        return `
+          <div style="font-weight: 600; margin-bottom: 4px;">${dateStr}</div>
+          <div style="color: #666; font-size: 11px; margin-bottom: 8px;">${timeStr}</div>
+          <div style="font-size: 16px; font-weight: 700; color: #4CAF50;">$${param.value.toLocaleString()}</div>
+        `
+      },
       axisPointer: {
-        type: 'line',
+        type: 'cross',
+        crossStyle: {
+          color: '#4CAF50',
+          opacity: 0.5
+        },
         lineStyle: {
           color: '#4CAF50',
-          type: 'dashed'
+          type: 'solid',
+          width: 1,
+          opacity: 0.5
         }
       }
     }
