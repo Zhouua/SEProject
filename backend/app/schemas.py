@@ -38,23 +38,7 @@ class ArbitrageDataBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ======= 兼容旧版TradeData的模型（字段重命名适配） ========
 
-class TradeDataBase(BaseModel):
-    time_align: datetime = Field(..., description="对齐时间戳")
-    price_b: float = Field(..., description="Binance价格")
-    price_u: float = Field(..., description="Uniswap价格")
-    eth_vol_b: float = Field(..., description="Binance ETH交易量")
-    eth_vol_u: float = Field(..., description="Uniswap ETH交易量")
-    usdt_vol_b: float = Field(..., description="Binance USDT交易量")
-    usdt_vol_u: float = Field(..., description="Uniswap USDT交易量")
-
-class TradeDataResponse(TradeDataBase):
-    id: int = Field(..., description="记录ID")
-    arbitrage_profit: Optional[float] = Field(None, description="套利利润（USDT）")
-    is_arbitrage_opportunity: bool = Field(False, description="是否为套利机会")
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 # ======= 价格相关模型 =======
