@@ -28,13 +28,18 @@ cd backend
 pip install -r requirements.txt
 # 配置环境，并在.env中填好信息
 cp .env.example .env
+# 算法已经更新，请先清除旧的表
+python scripts/reset_database.py
 # 导入数据库计算套利机会
 python scripts/import_csv_to_db.py
 # 启动后端
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 或者也可以
+python run_server.py  
 ```
 
-生成`trade_data`表
+### 1. `binance_data` 表
+
 <table>
 <thead>
 <tr>
@@ -58,40 +63,106 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 <td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
 </tr>
 <tr>
-<td>price_b</td>
+<td>price</td>
 <td>Float</td>
 <td>非空</td>
 <td>Binance 平台 ETH 价格（USDT 计价）</td>
 </tr>
 <tr>
-<td>eth_vol_b</td>
+<td>eth_vol</td>
 <td>Float</td>
 <td>非空</td>
 <td>Binance 平台 ETH 交易量（数量单位）</td>
 </tr>
 <tr>
-<td>usdt_vol_b</td>
+<td>usdt_vol</td>
 <td>Float</td>
 <td>非空</td>
 <td>Binance 平台 USDT 交易量（金额单位）</td>
 </tr>
+</tbody>
+</table>
+
+### 2. `uniswap_data` 表
+
+<table>
+<thead>
 <tr>
-<td>price_u</td>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>Integer</td>
+<td>主键、自增、单字段索引</td>
+<td>表唯一标识</td>
+</tr>
+<tr>
+<td>time_align</td>
+<td>DateTime</td>
+<td>非空、单字段索引</td>
+<td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
+</tr>
+<tr>
+<td>price</td>
 <td>Float</td>
 <td>非空</td>
 <td>Uniswap 平台 ETH 价格（USDT 计价）</td>
 </tr>
 <tr>
-<td>eth_vol_u</td>
+<td>eth_vol</td>
 <td>Float</td>
 <td>非空</td>
 <td>Uniswap 平台 ETH 交易量（数量单位）</td>
 </tr>
 <tr>
-<td>usdt_vol_u</td>
+<td>usdt_vol</td>
 <td>Float</td>
 <td>非空</td>
 <td>Uniswap 平台 USDT 交易量（金额单位）</td>
+</tr>
+</tbody>
+</table>
+
+### 3. `arbitrage_data` 表
+
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>Integer</td>
+<td>主键、自增、单字段索引</td>
+<td>表唯一标识</td>
+</tr>
+<tr>
+<td>time_align</td>
+<td>DateTime</td>
+<td>非空、单字段索引</td>
+<td>对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）</td>
+</tr>
+<tr>
+<td>binance_id</td>
+<td>Integer</td>
+<td>外键、非空、单字段索引</td>
+<td>关联 binance_data 表的 id</td>
+</tr>
+<tr>
+<td>uniswap_id</td>
+<td>Integer</td>
+<td>外键、非空、单字段索引</td>
+<td>关联 uniswap_data 表的 id</td>
 </tr>
 <tr>
 <td>arbitrage_profit</td>
@@ -107,6 +178,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 </tr>
 </tbody>
 </table>
+
 浏览器访问：
 Base URL: http://localhost:8000
 API 文档: http://localhost:8000/docs

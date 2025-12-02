@@ -1,9 +1,11 @@
 <template>
-  <div class="price-comparison">
-    <div class="header">
-      <h2>{{ t('sidebar.priceComparison.title') }}</h2>
+  <div class="page-container">
+    <TruckLoader :show="loading" text="加载图表数据中..." />
+    <!-- Page Header
+    <div class="page-header">
+      <h2 class="page-title">{{ t('sidebar.priceComparison.title') }}</h2>
       <div class="controls">
-        <el-radio-group v-model="interval" size="small" @change="fetchData">
+        <el-radio-group v-model="interval" size="default" @change="fetchData" class="custom-radio">
           <el-radio-button label="1h">1H</el-radio-button>
           <el-radio-button label="4h">4H</el-radio-button>
           <el-radio-button label="1d">1D</el-radio-button>
@@ -11,19 +13,53 @@
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          range-separator="-"
+          :start-placeholder="t('common.startDate')"
+          :end-placeholder="t('common.endDate')"
           :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
           :disabled-date="disabledDate"
           value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
+          class="custom-picker"
         />
       </div>
     </div>
-
-    <div class="chart-container" v-loading="loading">
-      <div ref="chartRef" style="width: 100%; height: 600px;"></div>
+    -->
+    <div class="card chart-card">
+      <div class="chart-info-bar">
+        <div class="chart-legend">
+          <div class="legend-section">
+            <span class="legend-title">Binance:</span>
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="color-box" style="background: #10B981;"></span>
+                <span class="legend-text">Up</span>
+              </div>
+              <div class="legend-item">
+                <span class="color-box" style="background: #EF4444;"></span>
+                <span class="legend-text">Down</span>
+              </div>
+            </div>
+          </div>
+          <div class="legend-section">
+            <span class="legend-title">Uniswap:</span>
+            <div class="legend-items">
+              <div class="legend-item">
+                <span class="color-box" style="background: #3B82F6;"></span>
+                <span class="legend-text">Up</span>
+              </div>
+              <div class="legend-item">
+                <span class="color-box" style="background: #F59E0B;"></span>
+                <span class="legend-text">Down</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-description">
+          <span class="desc-text">{{ t('chart.candlestickInfo') || 'Candlestick chart with volume indicators' }}</span>
+        </div>
+      </div>
+      <div ref="chartRef" style="width: 100%; height: 700px;"></div>
     </div>
   </div>
 </template>
@@ -33,16 +69,16 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const chartRef = ref(null)
 let chart = null
 
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
-const interval = ref('4h') // Default to 4H for better view
+const interval = ref('4h')
 const loading = ref(false)
 
-// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
   const maxDate = new Date('2025-09-30T23:59:59')
@@ -62,7 +98,6 @@ const fetchData = async () => {
   loading.value = true
   try {
     const [start, end] = dateRange.value
-    // Use getPriceCandles instead of getHistoricalPrices
     const data = await api.getPriceCandles(start, end, interval.value)
     updateChart(data)
   } catch (error) {
@@ -77,8 +112,6 @@ const updateChart = (data) => {
   
   const dates = data.map(item => item.time)
   
-  // Prepare Candlestick Data: [Open, Close, Low, High]
-  // Note: ECharts K-line expects [Open, Close, Lowest, Highest]
   const binanceData = data.map(item => [
     item.binance.open,
     item.binance.close,
@@ -92,55 +125,153 @@ const updateChart = (data) => {
     item.uniswap.low,
     item.uniswap.high
   ])
+  
+  const binanceVolume = data.map(item => item.binance.usdt_volume || 0)
+  const uniswapVolume = data.map(item => item.uniswap.usdt_volume || 0)
 
   const option = {
-    title: {
-      text: 'Price Comparison (Candlestick)',
-      left: 'center'
-    },
     tooltip: {
       trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
+      axisPointer: { 
+        type: 'cross',
+        link: [{ xAxisIndex: 'all' }],
+        label: { backgroundColor: '#6a7985' } 
+      },
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#E5E7EB',
+      borderWidth: 1,
+      textStyle: { color: '#111827', fontSize: 12 },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>'
+        params.forEach(param => {
+          if (param.seriesType === 'candlestick') {
+            const data = param.data
+            result += `<div style="margin: 4px 0;">
+              <strong>${param.seriesName}</strong><br/>
+              Open: $${data[1]}<br/>
+              Close: $${data[2]}<br/>
+              Low: $${data[3]}<br/>
+              High: $${data[4]}
+            </div>`
+          } else if (param.seriesType === 'bar') {
+            result += `${param.marker} ${param.seriesName}: ${param.value.toLocaleString()} USDT<br/>`
+          }
+        })
+        return result
       }
     },
     legend: {
-      data: ['Binance', 'Uniswap'],
-      bottom: 10
+      data: ['Binance', 'Uniswap', 'Binance Volume', 'Uniswap Volume'],
+      bottom: 0,
+      icon: 'circle',
+      itemGap: 24,
+      textStyle: { color: '#6B7280', fontSize: 12 }
     },
-    grid: {
-      left: '10%',
-      right: '10%',
-      bottom: '15%'
+    axisPointer: {
+      link: [{ xAxisIndex: 'all' }]
     },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      scale: true,
-      boundaryGap: false,
-      axisLine: { onZero: false },
-      splitLine: { show: false },
-      min: 'dataMin',
-      max: 'dataMax'
-    },
-    yAxis: {
-      scale: true,
-      splitArea: {
-        show: true
+    grid: [
+      {
+        left: '3%',
+        right: '3%',
+        top: '5%',
+        height: '55%',
+        containLabel: true
+      },
+      {
+        left: '3%',
+        right: '3%',
+        top: '68%',
+        height: '18%',
+        containLabel: true
       }
-    },
+    ],
+    xAxis: [
+      {
+        type: 'category',
+        data: dates,
+        scale: true,
+        boundaryGap: true,
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          formatter: (value) => {
+            const date = new Date(value)
+            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+          }
+        },
+        splitLine: { show: false },
+        min: 'dataMin',
+        max: 'dataMax'
+      },
+      {
+        type: 'category',
+        gridIndex: 1,
+        data: dates,
+        scale: true,
+        boundaryGap: true,
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          formatter: (value) => {
+            const date = new Date(value)
+            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+          }
+        },
+        splitLine: { show: false },
+        min: 'dataMin',
+        max: 'dataMax'
+      }
+    ],
+    yAxis: [
+      {
+        scale: true,
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          formatter: '${value}'
+        }
+      },
+      {
+        scale: true,
+        gridIndex: 1,
+        splitNumber: 2,
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          formatter: (value) => {
+            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
+            if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
+            return value
+          }
+        }
+      }
+    ],
     dataZoom: [
       {
         type: 'inside',
+        xAxisIndex: [0, 1],
         start: 0,
         end: 100
       },
       {
         show: true,
+        xAxisIndex: [0, 1],
         type: 'slider',
-        top: '90%',
+        bottom: '5%',
+        height: 20,
         start: 0,
-        end: 100
+        end: 100,
+        borderColor: 'transparent',
+        backgroundColor: '#F3F4F6',
+        fillerColor: 'rgba(16, 185, 129, 0.2)',
+        handleStyle: {
+          color: '#10B981',
+          shadowBlur: 3,
+          shadowColor: 'rgba(0, 0, 0, 0.1)',
+          shadowOffsetX: 2,
+          shadowOffsetY: 2
+        }
       }
     ],
     series: [
@@ -149,22 +280,46 @@ const updateChart = (data) => {
         type: 'candlestick',
         data: binanceData,
         itemStyle: {
-          color: '#ec0000',
-          color0: '#00da3c',
-          borderColor: '#8A0000',
-          borderColor0: '#008F28'
-        }
+          color: '#10B981',
+          color0: '#EF4444',
+          borderColor: '#10B981',
+          borderColor0: '#EF4444'
+        },
+        barMaxWidth: 10
       },
       {
         name: 'Uniswap',
         type: 'candlestick',
         data: uniswapData,
         itemStyle: {
-          color: '#eb5454',
-          color0: '#47b262',
-          borderColor: '#eb5454',
-          borderColor0: '#47b262'
-        }
+          color: '#3B82F6',
+          color0: '#F59E0B',
+          borderColor: '#3B82F6',
+          borderColor0: '#F59E0B'
+        },
+        barMaxWidth: 10
+      },
+      {
+        name: 'Binance Volume',
+        type: 'bar',
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: binanceVolume,
+        itemStyle: {
+          color: 'rgba(16, 185, 129, 0.3)'
+        },
+        barMaxWidth: 8
+      },
+      {
+        name: 'Uniswap Volume',
+        type: 'bar',
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: uniswapVolume,
+        itemStyle: {
+          color: 'rgba(59, 130, 246, 0.3)'
+        },
+        barMaxWidth: 8
       }
     ]
   }
@@ -180,20 +335,25 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.price-comparison {
-  padding: 20px;
+<style lang="scss" scoped>
+.page-container {
+  padding: 0 24px 24px 20px;
+  max-width: 1600px;
+  margin: -8px auto 0;
+  position: relative;
 }
 
-.header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  margin-bottom: var(--spacing-xl);
+  
+  .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
 }
 
 .controls {
@@ -202,10 +362,87 @@ onMounted(() => {
   align-items: center;
 }
 
-.chart-container {
-  background: white;
-  padding: 20px;
+.chart-card {
+  padding: var(--spacing-xl);
+  height: auto;
+}
+
+.chart-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-tertiary);
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  
+  .chart-legend {
+    display: flex;
+    gap: 32px;
+    
+    .legend-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .legend-title {
+        font-weight: 600;
+        color: var(--color-text-primary);
+        font-size: 13px;
+      }
+      
+      .legend-items {
+        display: flex;
+        gap: 8px;
+        
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          .color-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+          }
+          
+          .legend-text {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+          }
+        }
+      }
+    }
+  }
+  
+  .chart-description {
+    .desc-text {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      font-style: italic;
+    }
+  }
+}
+
+/* Custom Element Plus Overrides */
+:deep(.el-radio-button__inner) {
+  border: none;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border-radius: 6px;
+  margin-right: 4px;
+  box-shadow: none !important;
+}
+
+:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: var(--color-text-primary);
+  color: white;
+  box-shadow: none;
+}
+
+:deep(.el-date-editor.el-input__wrapper) {
+  box-shadow: none;
+  background-color: var(--color-bg-tertiary);
+  border-radius: 8px;
 }
 </style>

@@ -42,6 +42,28 @@ const routes = [
         component: () => import('@/views/LiquidityAnalysis.vue')
       }
     ]
+  },
+  {
+    path: '/help',
+    name: 'Help',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/HelpCenter.vue')
+      }
+    ]
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/Welcome.vue') // 使用 Welcome 页面作为占位符
+      }
+    ]
   }
 ]
 

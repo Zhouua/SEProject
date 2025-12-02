@@ -1,45 +1,50 @@
 <template>
-  <div class="liquidity-analysis">
-    <div class="header">
-      <h2>市场流动性分析</h2>
-      <p class="subtitle">对比 Binance 和 Uniswap 的市场深度与流动性</p>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <TruckLoader :show="loading" text="加载流动性数据中..." />
+      <!-- Page Header 
+      <div class="page-header">
+      <div>
+        <h2 class="page-title">{{ t('sidebar.liquidityAnalysis') }}</h2>
+        <p class="page-subtitle">Market Depth & Liquidity Analysis</p>
+      </div>
       <div class="controls">
         <el-date-picker
           v-model="dateRange"
           type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          range-separator="-"
+          :start-placeholder="t('common.startDate')"
+          :end-placeholder="t('common.endDate')"
           :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
           :disabled-date="disabledDate"
           value-format="YYYY-MM-DD HH:mm:ss"
           @change="fetchData"
+          class="custom-picker"
         />
       </div>
     </div>
+    -->
 
-    <!-- 流动性指标卡片 -->
     <div class="liquidity-cards">
-      <div class="liquidity-card binance-card">
+      <div class="card liquidity-card">
         <div class="card-header">
-          <h3>Binance</h3>
-          <span class="badge centralized">中心化交易所</span>
+          <div class="platform-info">
+            <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" class="platform-icon" />
+            <h3>Binance</h3>
+          </div>
+          <span class="badge centralized">CEX</span>
         </div>
         <div class="metrics">
           <div class="metric">
-            <span class="label">平均每分钟交易量</span>
+            <span class="label">Avg. Volume / Min</span>
             <span class="value">{{ formatNumber(avgVolumeBinance) }} ETH</span>
           </div>
           <div class="metric">
-            <span class="label">总交易金额</span>
+            <span class="label">Total Volume</span>
             <span class="value">${{ formatNumber(totalUsdtBinance) }}</span>
           </div>
           <div class="metric">
-            <span class="label">最大单笔交易</span>
-            <span class="value">{{ formatNumber(maxVolumeBinance) }} ETH</span>
-          </div>
-          <div class="metric">
-            <span class="label">流动性评分</span>
+            <span class="label">Liquidity Score</span>
             <div class="score-bar">
               <div class="score-fill binance" :style="{ width: liquidityScoreBinance + '%' }"></div>
               <span class="score-text">{{ liquidityScoreBinance }}/100</span>
@@ -48,26 +53,25 @@
         </div>
       </div>
 
-      <div class="liquidity-card uniswap-card">
+      <div class="card liquidity-card">
         <div class="card-header">
-          <h3>Uniswap V3</h3>
-          <span class="badge decentralized">去中心化交易所</span>
+          <div class="platform-info">
+            <img src="https://cryptologos.cc/logos/uniswap-uni-logo.png" class="platform-icon" />
+            <h3>Uniswap V3</h3>
+          </div>
+          <span class="badge decentralized">DEX</span>
         </div>
         <div class="metrics">
           <div class="metric">
-            <span class="label">平均每分钟交易量</span>
+            <span class="label">Avg. Volume / Min</span>
             <span class="value">{{ formatNumber(avgVolumeUniswap) }} ETH</span>
           </div>
           <div class="metric">
-            <span class="label">总交易金额</span>
+            <span class="label">Total Volume</span>
             <span class="value">${{ formatNumber(totalUsdtUniswap) }}</span>
           </div>
           <div class="metric">
-            <span class="label">最大单笔交易</span>
-            <span class="value">{{ formatNumber(maxVolumeUniswap) }} ETH</span>
-          </div>
-          <div class="metric">
-            <span class="label">流动性评分</span>
+            <span class="label">Liquidity Score</span>
             <div class="score-bar">
               <div class="score-fill uniswap" :style="{ width: liquidityScoreUniswap + '%' }"></div>
               <span class="score-text">{{ liquidityScoreUniswap }}/100</span>
@@ -77,45 +81,49 @@
       </div>
     </div>
 
-    <!-- 图表区域 -->
-    <div class="charts-section">
-      <div class="chart-card full-width">
-        <h3 class="chart-title">流动性趋势 (USDT Value)</h3>
-        <p class="chart-desc">展示 Binance 和 Uniswap 的流动性（交易总值）随时间的变化</p>
+    <div class="charts-grid">
+      <div class="card chart-card full-width">
+        <div class="chart-header">
+          <h3 class="chart-title">Liquidity Trend (USDT)</h3>
+          <p class="chart-desc">Total liquidity value over time</p>
+        </div>
         <div ref="liquidityTrendChartRef" style="width: 100%; height: 400px;"></div>
       </div>
 
-      <div class="chart-card">
-        <h3 class="chart-title">平均交易量对比（按小时）</h3>
-        <div ref="hourlyVolumeChartRef" style="width: 100%; height: 400px;"></div>
+      <div class="card chart-card">
+        <h3 class="chart-title">Hourly Volume Comparison</h3>
+        <div ref="hourlyVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
-      <div class="chart-card">
-        <h3 class="chart-title">流动性深度分布</h3>
-        <p class="chart-desc">不同交易量级别的分布情况</p>
-        <div ref="liquidityDistributionChartRef" style="width: 100%; height: 400px;"></div>
+      <div class="card chart-card">
+        <h3 class="chart-title">Liquidity Distribution</h3>
+        <div ref="liquidityDistributionChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
-      <div class="chart-card full-width">
-        <h3 class="chart-title">价格波动与交易量关系</h3>
-        <p class="chart-desc">交易量越大，价格越稳定（波动越小）</p>
-        <div ref="volumePriceChartRef" style="width: 100%; height: 400px;"></div>
+      <div class="card chart-card full-width">
+        <div class="chart-header">
+          <h3 class="chart-title">Price Volatility Analysis</h3>
+          <p class="chart-desc">Hourly price change percentage</p>
+        </div>
+        <div ref="volatilityChartRef" style="width: 100%; height: 350px;"></div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
+import TruckLoader from '@/components/TruckLoader.vue'
 
-// 使用标准ISO格式初始化日期，确保浏览器兼容性
+const { t } = useI18n()
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const priceData = ref([])
 
-// 限制日期选择范围：只允许 2025-09-01 至 2025-09-30
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
   const maxDate = new Date('2025-09-30T23:59:59')
@@ -124,15 +132,14 @@ const disabledDate = (time) => {
 
 const hourlyVolumeChartRef = ref(null)
 const liquidityDistributionChartRef = ref(null)
-const volumePriceChartRef = ref(null)
 const liquidityTrendChartRef = ref(null)
+const volatilityChartRef = ref(null)
 
 let hourlyVolumeChart = null
 let liquidityDistributionChart = null
-let volumePriceChart = null
 let liquidityTrendChart = null
+let volatilityChart = null
 
-// 计算流动性指标
 const avgVolumeBinance = computed(() => {
   if (priceData.value.length === 0) return 0
   const total = priceData.value.reduce((sum, item) => sum + (item.binance?.eth_volume || 0), 0)
@@ -161,10 +168,8 @@ const maxVolumeUniswap = computed(() => {
   return Math.max(...priceData.value.map(item => item.uniswap?.eth_volume || 0))
 })
 
-// 流动性评分（基于交易量和稳定性）
 const liquidityScoreBinance = computed(() => {
   if (priceData.value.length === 0) return 0
-  // 综合考虑平均交易量和最大交易量
   const avgScore = Math.min(avgVolumeBinance.value / 10, 50)
   const maxScore = Math.min(maxVolumeBinance.value / 100, 50)
   return Math.round(avgScore + maxScore)
@@ -183,55 +188,47 @@ const formatNumber = (num) => {
   return num.toFixed(2)
 }
 
+const loading = ref(false)
+
 const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
-  const [start, end] = dateRange.value
-  
-  // Fetch liquidity trend data (always fetch as it's small and specific)
-  const liqData = await api.getLiquidityAnalysis(start, end, '1h')
-  updateLiquidityTrendChart(liqData)
-  
-  // Check cache for price data
-  const cachedData = store.getCachedPriceData(start, end)
-  if (cachedData) {
-    console.log('Using cached price data for liquidity')
-    priceData.value = cachedData
+  loading.value = true
+  try {
+    const [start, end] = dateRange.value
+    
+    const liqData = await api.getLiquidityAnalysis(start, end, '1h')
+    updateLiquidityTrendChart(liqData)
+    
+    const cachedData = store.getCachedPriceData(start, end)
+    if (cachedData) {
+      priceData.value = cachedData
+      updateCharts()
+      return
+    }
+    
+    const data = await api.getHistoricalPrices(start, end, 50000)
+    store.setPriceData(data, start, end)
+    priceData.value = data
     updateCharts()
-    return
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    loading.value = false
   }
-  
-  console.log('Fetching liquidity data:', start, end) // 调试日志
-  
-  const data = await api.getHistoricalPrices(start, end, 50000)
-  console.log('Received data:', data?.length, 'records') // 调试日志
-  
-  // Cache the data
-  store.setPriceData(data, start, end)
-  
-  priceData.value = data
-  updateCharts()
 }
 
 const initCharts = () => {
-  if (hourlyVolumeChartRef.value) {
-    hourlyVolumeChart = echarts.init(hourlyVolumeChartRef.value)
-  }
-  if (liquidityDistributionChartRef.value) {
-    liquidityDistributionChart = echarts.init(liquidityDistributionChartRef.value)
-  }
-  if (volumePriceChartRef.value) {
-    volumePriceChart = echarts.init(volumePriceChartRef.value)
-  }
-  if (liquidityTrendChartRef.value) {
-    liquidityTrendChart = echarts.init(liquidityTrendChartRef.value)
-  }
+  if (hourlyVolumeChartRef.value) hourlyVolumeChart = echarts.init(hourlyVolumeChartRef.value)
+  if (liquidityDistributionChartRef.value) liquidityDistributionChart = echarts.init(liquidityDistributionChartRef.value)
+  if (liquidityTrendChartRef.value) liquidityTrendChart = echarts.init(liquidityTrendChartRef.value)
+  if (volatilityChartRef.value) volatilityChart = echarts.init(volatilityChartRef.value)
 
   window.addEventListener('resize', () => {
     hourlyVolumeChart?.resize()
     liquidityDistributionChart?.resize()
-    volumePriceChart?.resize()
     liquidityTrendChart?.resize()
+    volatilityChart?.resize()
   })
 }
 
@@ -245,33 +242,36 @@ const updateLiquidityTrendChart = (data) => {
   liquidityTrendChart.setOption({
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'cross' }
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderColor: '#E5E7EB',
+      textStyle: { color: '#111827' }
     },
     legend: {
-      data: ['Binance Liquidity', 'Uniswap Liquidity'],
-      bottom: 10
+      data: ['Binance', 'Uniswap'],
+      bottom: 0,
+      icon: 'circle',
+      textStyle: { color: '#6B7280' }
     },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '12%',
-      containLabel: true
-    },
+    grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       data: times,
       boundaryGap: false,
-      axisLabel: {
+      axisLine: { lineStyle: { color: '#E5E7EB' } },
+      axisLabel: { 
+        color: '#9CA3AF',
         formatter: (value) => {
           const date = new Date(value)
-          return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`
+          return `${date.getMonth() + 1}/${date.getDate()}`
         }
-      }
+      },
+      splitLine: { show: false }
     },
     yAxis: {
       type: 'value',
-      name: 'Liquidity (USDT)',
-      axisLabel: {
+      splitLine: { lineStyle: { color: '#F3F4F6' } },
+      axisLabel: { 
+        color: '#9CA3AF',
         formatter: (value) => {
           if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M'
           if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
@@ -281,30 +281,30 @@ const updateLiquidityTrendChart = (data) => {
     },
     series: [
       {
-        name: 'Binance Liquidity',
+        name: 'Binance',
         type: 'line',
         data: binanceLiq,
         smooth: true,
         showSymbol: false,
-        itemStyle: { color: '#f0b90b' },
+        itemStyle: { color: '#F59E0B' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(240, 185, 11, 0.3)' },
-            { offset: 1, color: 'rgba(240, 185, 11, 0.05)' }
+            { offset: 0, color: 'rgba(245, 158, 11, 0.2)' },
+            { offset: 1, color: 'rgba(245, 158, 11, 0)' }
           ])
         }
       },
       {
-        name: 'Uniswap Liquidity',
+        name: 'Uniswap',
         type: 'line',
         data: uniswapLiq,
         smooth: true,
         showSymbol: false,
-        itemStyle: { color: '#ff007a' },
+        itemStyle: { color: '#EC4899' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(255, 0, 122, 0.3)' },
-            { offset: 1, color: 'rgba(255, 0, 122, 0.05)' }
+            { offset: 0, color: 'rgba(236, 72, 153, 0.2)' },
+            { offset: 1, color: 'rgba(236, 72, 153, 0)' }
           ])
         }
       }
@@ -313,20 +313,12 @@ const updateLiquidityTrendChart = (data) => {
 }
 
 const updateCharts = () => {
-  console.log('updateCharts called, priceData:', priceData.value?.length) // 调试日志
-  
-  if (!priceData.value || priceData.value.length === 0) {
-    console.warn('No data to display')
-    return
-  }
+  if (!priceData.value || priceData.value.length === 0) return
 
-  // 按小时聚合数据
   const hourlyData = {}
   priceData.value.forEach(item => {
     const hour = new Date(item.time).getHours()
-    if (!hourlyData[hour]) {
-      hourlyData[hour] = { binance: [], uniswap: [] }
-    }
+    if (!hourlyData[hour]) hourlyData[hour] = { binance: [], uniswap: [] }
     hourlyData[hour].binance.push(item.binance?.eth_volume || 0)
     hourlyData[hour].uniswap.push(item.uniswap?.eth_volume || 0)
   })
@@ -341,57 +333,45 @@ const updateCharts = () => {
     return arr.reduce((a, b) => a + b, 0) / arr.length
   })
 
-  // 小时交易量图表
   if (hourlyVolumeChart) {
     hourlyVolumeChart.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' }
-      },
-      legend: {
-        data: ['Binance', 'Uniswap'],
-        bottom: 10
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '12%',
-        containLabel: true
-      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { bottom: 0, icon: 'circle' },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
       xAxis: {
         type: 'category',
         data: hours.map(h => h + ':00'),
-        name: '小时'
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       yAxis: {
         type: 'value',
-        name: '平均 ETH 交易量'
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       series: [
         {
           name: 'Binance',
           type: 'bar',
           data: avgBinance,
-          itemStyle: { color: '#f0b90b' }
+          itemStyle: { color: '#F59E0B', borderRadius: [4, 4, 0, 0] }
         },
         {
           name: 'Uniswap',
           type: 'bar',
           data: avgUniswap,
-          itemStyle: { color: '#ff007a' }
+          itemStyle: { color: '#EC4899', borderRadius: [4, 4, 0, 0] }
         }
       ]
     })
   }
 
-  // 流动性分布图
   if (liquidityDistributionChart) {
     const ranges = [
-      { label: '0-10 ETH', min: 0, max: 10 },
-      { label: '10-50 ETH', min: 10, max: 50 },
-      { label: '50-100 ETH', min: 50, max: 100 },
-      { label: '100-500 ETH', min: 100, max: 500 },
-      { label: '500+ ETH', min: 500, max: Infinity }
+      { label: '0-10', min: 0, max: 10 },
+      { label: '10-50', min: 10, max: 50 },
+      { label: '50-100', min: 50, max: 100 },
+      { label: '100+', min: 100, max: Infinity }
     ]
 
     const distributionB = ranges.map(range => {
@@ -409,88 +389,141 @@ const updateCharts = () => {
     })
 
     liquidityDistributionChart.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' }
-      },
-      legend: {
-        data: ['Binance', 'Uniswap'],
-        bottom: 10
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '12%',
-        containLabel: true
-      },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { bottom: 0, icon: 'circle' },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
       xAxis: {
         type: 'category',
         data: ranges.map(r => r.label),
-        axisLabel: { rotate: 20 }
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       yAxis: {
         type: 'value',
-        name: '交易次数'
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { color: '#9CA3AF' }
       },
       series: [
         {
           name: 'Binance',
           type: 'bar',
           data: distributionB,
-          itemStyle: { color: '#f0b90b' }
+          itemStyle: { color: '#F59E0B', borderRadius: [4, 4, 0, 0] }
         },
         {
           name: 'Uniswap',
           type: 'bar',
           data: distributionU,
-          itemStyle: { color: '#ff007a' }
+          itemStyle: { color: '#EC4899', borderRadius: [4, 4, 0, 0] }
         }
       ]
     })
   }
 
-  // 价格波动与交易量关系
-  if (volumePriceChart) {
-    const scatterData = priceData.value.map(item => [
-      item.binance?.eth_volume || 0,
-      Math.abs(item.price_diff_percent || 0)
-    ])
-
-    volumePriceChart.setOption({
+  // Volatility Chart
+  if (volatilityChart && priceData.value.length > 1) {
+    const volatilityData = []
+    for (let i = 1; i < priceData.value.length; i++) {
+      const prev = priceData.value[i - 1]
+      const curr = priceData.value[i]
+      
+      const binanceChange = prev.binance?.price && curr.binance?.price
+        ? ((curr.binance.price - prev.binance.price) / prev.binance.price) * 100
+        : 0
+      
+      const uniswapChange = prev.uniswap?.price && curr.uniswap?.price
+        ? ((curr.uniswap.price - prev.uniswap.price) / prev.uniswap.price) * 100
+        : 0
+      
+      volatilityData.push({
+        time: curr.time,
+        binance: binanceChange,
+        uniswap: uniswapChange
+      })
+    }
+    
+    const times = volatilityData.map(d => {
+      const date = new Date(d.time)
+      return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`
+    })
+    const binanceVol = volatilityData.map(d => d.binance.toFixed(4))
+    const uniswapVol = volatilityData.map(d => d.uniswap.toFixed(4))
+    
+    volatilityChart.setOption({
       tooltip: {
-        trigger: 'item',
+        trigger: 'axis',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderColor: '#E5E7EB',
+        textStyle: { color: '#111827' },
         formatter: (params) => {
-          return `交易量: ${params.value[0].toFixed(2)} ETH<br/>价格波动: ${params.value[1].toFixed(4)}%`
+          let result = params[0].axisValue + '<br/>'
+          params.forEach(param => {
+            result += `${param.seriesName}: ${param.value}%<br/>`
+          })
+          return result
         }
       },
-      grid: {
-        left: '10%',
-        right: '10%',
-        bottom: '10%',
-        top: '10%',
-        containLabel: true
+      legend: {
+        data: ['Binance', 'Uniswap'],
+        bottom: 0,
+        icon: 'circle',
+        textStyle: { color: '#6B7280' }
       },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
       xAxis: {
-        type: 'value',
-        name: 'ETH 交易量',
-        nameLocation: 'middle',
-        nameGap: 30
+        type: 'category',
+        data: times,
+        boundaryGap: false,
+        axisLine: { lineStyle: { color: '#E5E7EB' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          rotate: 45
+        },
+        splitLine: { show: false }
       },
       yAxis: {
         type: 'value',
-        name: '价格差异百分比 (%)',
-        nameLocation: 'middle',
-        nameGap: 50
-      },
-      series: [{
-        type: 'scatter',
-        data: scatterData,
-        symbolSize: 6,
-        itemStyle: {
-          color: '#4CAF50',
-          opacity: 0.5
+        splitLine: { lineStyle: { color: '#F3F4F6' } },
+        axisLabel: { 
+          color: '#9CA3AF',
+          formatter: '{value}%'
         }
-      }]
+      },
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          end: 100
+        },
+        {
+          show: true,
+          type: 'slider',
+          top: '90%',
+          height: 20,
+          start: 0,
+          end: 100
+        }
+      ],
+      series: [
+        {
+          name: 'Binance',
+          type: 'line',
+          data: binanceVol,
+          smooth: true,
+          showSymbol: false,
+          itemStyle: { color: '#F59E0B' },
+          lineStyle: { width: 2 }
+        },
+        {
+          name: 'Uniswap',
+          type: 'line',
+          data: uniswapVol,
+          smooth: true,
+          showSymbol: false,
+          itemStyle: { color: '#EC4899' },
+          lineStyle: { width: 2 }
+        }
+      ]
     })
   }
 }
@@ -504,163 +537,158 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.liquidity-analysis {
-  padding: 20px;
+.page-container {
+  padding: 0 24px 24px 20px;
+  max-width: 1600px;
+  margin: -8px auto 0;
+  position: relative;
 }
 
-.header {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 20px;
+.content-wrapper {
+  position: relative;
+  min-height: 400px;
+}
 
-  h2 {
-    margin: 0 0 8px 0;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  
+  .page-title {
     font-size: 24px;
-    color: #1a1a1a;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
   }
-
-  .subtitle {
-    margin: 0 0 16px 0;
-    color: #666;
+  
+  .page-subtitle {
     font-size: 14px;
+    color: var(--color-text-secondary);
   }
 }
 
 .liquidity-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .liquidity-card {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
+  padding: var(--spacing-lg);
+  
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid #f0f0f0;
-
-    h3 {
-      margin: 0;
-      font-size: 20px;
-      color: #1a1a1a;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-bg-primary);
+    
+    .platform-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .platform-icon {
+        width: 32px;
+        height: 32px;
+      }
+      
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+      }
     }
-
+    
     .badge {
       padding: 4px 12px;
-      border-radius: 16px;
+      border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
-
+      
       &.centralized {
-        background: #fff3e0;
-        color: #f57c00;
+        background: #FFFBEB;
+        color: #F59E0B;
       }
-
+      
       &.decentralized {
-        background: #fce4ec;
-        color: #c2185b;
+        background: #FCE7F3;
+        color: #EC4899;
       }
     }
   }
-
+  
   .metrics {
     display: flex;
     flex-direction: column;
     gap: 16px;
-
+    
     .metric {
       display: flex;
       justify-content: space-between;
       align-items: center;
-
-      .label {
-        font-size: 13px;
-        color: #666;
-      }
-
-      .value {
-        font-size: 16px;
-        font-weight: 600;
-        color: #1a1a1a;
-      }
-
+      
+      .label { color: var(--color-text-secondary); font-size: 14px; }
+      .value { font-weight: 600; color: var(--color-text-primary); }
+      
       .score-bar {
         position: relative;
-        width: 150px;
-        height: 24px;
-        background: #f0f0f0;
-        border-radius: 12px;
+        width: 120px;
+        height: 20px;
+        background: var(--color-bg-primary);
+        border-radius: 10px;
         overflow: hidden;
-
+        
         .score-fill {
-          position: absolute;
-          left: 0;
-          top: 0;
           height: 100%;
-          border-radius: 12px;
-          transition: width 0.3s ease;
-
-          &.binance {
-            background: linear-gradient(90deg, #f0b90b, #f8d12f);
-          }
-
-          &.uniswap {
-            background: linear-gradient(90deg, #ff007a, #ff4d9f);
-          }
+          border-radius: 10px;
+          
+          &.binance { background: #F59E0B; }
+          &.uniswap { background: #EC4899; }
         }
-
+        
         .score-text {
           position: absolute;
           left: 50%;
           top: 50%;
           transform: translate(-50%, -50%);
-          font-size: 12px;
+          font-size: 10px;
           font-weight: 600;
-          color: #1a1a1a;
-          z-index: 1;
+          color: var(--color-text-primary);
         }
       }
     }
   }
 }
 
-.charts-section {
+.charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: var(--spacing-lg);
+  
+  .full-width {
+    grid-column: 1 / -1;
+  }
+}
 
-  .chart-card {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-    &.full-width {
-      grid-column: 1 / -1;
-    }
-
-    .chart-title {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-
-    .chart-desc {
-      margin: 0 0 16px 0;
-      font-size: 13px;
-      color: #666;
-    }
+.chart-card {
+  padding: var(--spacing-lg);
+  
+  .chart-header {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .chart-desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
   }
 }
 </style>

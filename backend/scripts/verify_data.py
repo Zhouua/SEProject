@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from sqlalchemy import select, func
 from app.database import AsyncSessionLocal, engine
-from app.models import TradeData
+from app.models import BinanceData, UniswapData, ArbitrageData
 
 async def verify_database():
     """
@@ -19,114 +19,155 @@ async def verify_database():
     async with AsyncSessionLocal() as session:
         try:
             # 1. 总记录数
-            result = await session.execute(select(func.count(TradeData.id)))
-            total_count = result.scalar()
-            print(f"\n📊 Total Records: {total_count}")
+            result_bn = await session.execute(select(func.count(BinanceData.id)))
+            bn_count = result_bn.scalar()
+            result_uni = await session.execute(select(func.count(UniswapData.id)))
+            uni_count = result_uni.scalar()
+            result_arb = await session.execute(select(func.count(ArbitrageData.id)))
+            arb_count = result_arb.scalar()
+            
+            print(f"\n📊 Total Records:")
+            print(f"   Binance Data: {bn_count}")
+            print(f"   Uniswap Data: {uni_count}")
+            print(f"   Arbitrage Data: {arb_count}")
             
             # 2. 套利机会统计
             result = await session.execute(
-                select(func.count(TradeData.id)).where(TradeData.is_arbitrage_opportunity == True)
+                select(func.count(ArbitrageData.id)).where(ArbitrageData.is_arbitrage_opportunity == True)
             )
             arbitrage_count = result.scalar()
-            arbitrage_percentage = (arbitrage_count / total_count * 100) if total_count > 0 else 0
+            arbitrage_percentage = (arbitrage_count / arb_count * 100) if arb_count > 0 else 0
             print(f"💰 Arbitrage Opportunities: {arbitrage_count} ({arbitrage_percentage:.2f}%)")
             
             # 3. 时间范围
-            result = await session.execute(
-                select(func.min(TradeData.time_align), func.max(TradeData.time_align))
+            result_bn = await session.execute(
+                select(func.min(BinanceData.time_align), func.max(BinanceData.time_align))
             )
-            time_range = result.first()
-            print(f"📅 Time Range: {time_range[0]} to {time_range[1]}")
+            time_range_bn = result_bn.first()
+            result_uni = await session.execute(
+                select(func.min(UniswapData.time_align), func.max(UniswapData.time_align))
+            )
+            time_range_uni = result_uni.first()
+            print(f"📅 Time Range:")
+            print(f"   Binance: {time_range_bn[0]} to {time_range_bn[1]}")
+            print(f"   Uniswap: {time_range_uni[0]} to {time_range_uni[1]}")
             
             # 4. 价格统计
-            result = await session.execute(
+            result_bn = await session.execute(
                 select(
-                    func.min(TradeData.price_b),
-                    func.max(TradeData.price_b),
-                    func.avg(TradeData.price_b),
-                    func.min(TradeData.price_u),
-                    func.max(TradeData.price_u),
-                    func.avg(TradeData.price_u)
+                    func.min(BinanceData.price),
+                    func.max(BinanceData.price),
+                    func.avg(BinanceData.price)
                 )
             )
-            price_stats = result.first()
-            print(f"\n💵 Binance Price - Min: {price_stats[0]:.2f}, Max: {price_stats[1]:.2f}, Avg: {price_stats[2]:.2f}")
-            print(f"💵 Uniswap Price - Min: {price_stats[3]:.2f}, Max: {price_stats[4]:.2f}, Avg: {price_stats[5]:.2f}")
+            price_stats_bn = result_bn.first()
+            
+            result_uni = await session.execute(
+                select(
+                    func.min(UniswapData.price),
+                    func.max(UniswapData.price),
+                    func.avg(UniswapData.price)
+                )
+            )
+            price_stats_uni = result_uni.first()
+            
+            print(f"\n💵 Binance Price - Min: {price_stats_bn[0]:.2f}, Max: {price_stats_bn[1]:.2f}, Avg: {price_stats_bn[2]:.2f}")
+            print(f"💵 Uniswap Price - Min: {price_stats_uni[0]:.2f}, Max: {price_stats_uni[1]:.2f}, Avg: {price_stats_uni[2]:.2f}")
             
             # 5. 套利获利统计
             result = await session.execute(
                 select(
-                    func.min(TradeData.arbitrage_profit),
-                    func.max(TradeData.arbitrage_profit),
-                    func.avg(TradeData.arbitrage_profit)
-                ).where(TradeData.is_arbitrage_opportunity == True)
+                    func.min(ArbitrageData.arbitrage_profit),
+                    func.max(ArbitrageData.arbitrage_profit),
+                    func.avg(ArbitrageData.arbitrage_profit)
+                ).where(ArbitrageData.is_arbitrage_opportunity == True)
             )
             profit_stats = result.first()
             if profit_stats[0] is not None:
                 print(f"💎 Arbitrage Profit (USDT) - Min: {profit_stats[0]:.2f}, Max: {profit_stats[1]:.2f}, Avg: {profit_stats[2]:.2f}")
             
             # 6. 检查是否有NULL值
-            result = await session.execute(
-                select(func.count(TradeData.id)).where(
-                    (TradeData.price_b == None) | 
-                    (TradeData.price_u == None) |
-                    (TradeData.eth_vol_b == None) |
-                    (TradeData.eth_vol_u == None)
+            result_bn = await session.execute(
+                select(func.count(BinanceData.id)).where(
+                    (BinanceData.price == None) | 
+                    (BinanceData.eth_vol == None) |
+                    (BinanceData.usdt_vol == None)
                 )
             )
-            null_count = result.scalar()
-            print(f"⚠️  Records with NULL values: {null_count}")
+            null_count_bn = result_bn.scalar()
             
-            # 7. 显示前5条数据样本
-            print(f"📋 Sample Data (First 5 records):")
-            print("-" * 60)
-            result = await session.execute(
-                select(TradeData).order_by(TradeData.time_align).limit(5)
+            result_uni = await session.execute(
+                select(func.count(UniswapData.id)).where(
+                    (UniswapData.price == None) | 
+                    (UniswapData.eth_vol == None) |
+                    (UniswapData.usdt_vol == None)
+                )
             )
-            samples = result.scalars().all()
+            null_count_uni = result_uni.scalar()
             
-            for i, record in enumerate(samples, 1):
-                print(f"\n{i}. Time: {record.time_align}")
-                print(f"   Binance: Price={record.price_b:.2f}, ETH_Vol={record.eth_vol_b:.4f}")
-                print(f"   Uniswap: Price={record.price_u:.2f}, ETH_Vol={record.eth_vol_u:.4f}")
-                print(f"   Arbitrage: Profit={record.arbitrage_profit:.2f} USDT, Opportunity={record.is_arbitrage_opportunity}")
+            print(f"⚠️  Records with NULL values:")
+            print(f"   Binance: {null_count_bn}")
+            print(f"   Uniswap: {null_count_uni}")
             
-            # 8. 显示最大套利机会
-            print(f"🏆 Top 5 Arbitrage Opportunities:")
+            # 7. 显示前5条数据样本（关联查询）
+            print(f"\n📋 Sample Data (First 5 records):")
             print("-" * 60)
             result = await session.execute(
-                select(TradeData)
-                .where(TradeData.is_arbitrage_opportunity == True)
-                .order_by(TradeData.arbitrage_profit.desc())
+                select(ArbitrageData, BinanceData, UniswapData)
+                .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
+                .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
+                .order_by(ArbitrageData.time_align)
                 .limit(5)
             )
-            top_opportunities = result.scalars().all()
+            samples = result.all()
             
-            for i, record in enumerate(top_opportunities, 1):
-                print(f"{i}. Time: {record.time_align}")
-                print(f"   Price Diff: Binance={record.price_b:.2f}, Uniswap={record.price_u:.2f}")
-                print(f"   ETH Volume (Uniswap): {record.eth_vol_u:.4f}")
-                print(f"   💰 Potential Profit: {record.arbitrage_profit:.2f} USDT")
+            for i, (arb, bn, uni) in enumerate(samples, 1):
+                print(f"\n{i}. Time: {arb.time_align}")
+                print(f"   Binance: Price={bn.price:.2f}, ETH_Vol={bn.eth_vol:.4f}")
+                print(f"   Uniswap: Price={uni.price:.2f}, ETH_Vol={uni.eth_vol:.4f}")
+                print(f"   Arbitrage: Profit={arb.arbitrage_profit:.2f} USDT, Opportunity={arb.is_arbitrage_opportunity}")
             
-            # 9. 验证套利计算公式
-            print(f"🧮 Verifying Arbitrage Calculation (First arbitrage opportunity):")
+            # 8. 显示最大套利机会
+            print(f"\n🏆 Top 5 Arbitrage Opportunities:")
             print("-" * 60)
             result = await session.execute(
-                select(TradeData)
-                .where(TradeData.is_arbitrage_opportunity == True)
+                select(ArbitrageData, BinanceData, UniswapData)
+                .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
+                .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
+                .where(ArbitrageData.is_arbitrage_opportunity == True)
+                .order_by(ArbitrageData.arbitrage_profit.desc())
+                .limit(5)
+            )
+            top_opportunities = result.all()
+            
+            for i, (arb, bn, uni) in enumerate(top_opportunities, 1):
+                print(f"\n{i}. Time: {arb.time_align}")
+                print(f"   Price Diff: Binance={bn.price:.2f}, Uniswap={uni.price:.2f}")
+                print(f"   ETH Volume (Uniswap): {uni.eth_vol:.4f}")
+                print(f"   💰 Potential Profit: {arb.arbitrage_profit:.2f} USDT")
+            
+            # 9. 验证套利计算公式
+            print(f"\n🧮 Verifying Arbitrage Calculation (First arbitrage opportunity):")
+            print("-" * 60)
+            result = await session.execute(
+                select(ArbitrageData, BinanceData, UniswapData)
+                .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
+                .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
+                .where(ArbitrageData.is_arbitrage_opportunity == True)
                 .limit(1)
             )
-            test_record = result.scalar_one_or_none()
+            test_record = result.first()
             
             if test_record:
+                arb, bn, uni = test_record
                 AMM_FEE = 0.003
                 CEX_FEE = 0.001
-                calculated_profit = test_record.eth_vol_u * (
-                    (1 - AMM_FEE) * (1 - CEX_FEE) * test_record.price_b - test_record.price_u
+                calculated_profit = uni.eth_vol * (
+                    (1 - AMM_FEE) * (1 - CEX_FEE) * bn.price - uni.price
                 )
-                print(f"   Stored Profit: {test_record.arbitrage_profit:.6f} USDT")
+                print(f"   Stored Profit: {arb.arbitrage_profit:.6f} USDT")
                 print(f"   Recalculated: {calculated_profit:.6f} USDT")
-                print(f"   Match: {'✅ YES' if abs(test_record.arbitrage_profit - calculated_profit) < 0.01 else '❌ NO'}")
+                print(f"   Match: {'✅ YES' if abs(arb.arbitrage_profit - calculated_profit) < 0.01 else '❌ NO'}")
             
             print("\n" + "=" * 60)
             print("✅ Verification Complete!")
