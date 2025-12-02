@@ -97,10 +97,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowLeft, Search, Bell, SuccessFilled, WarningFilled, InfoFilled, DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
+import { api } from '@/api'
 
 // 定义 props
 const props = defineProps({
@@ -120,47 +121,46 @@ const { t, locale } = useI18n()
 const searchQuery = ref('')
 const hasNotifications = ref(true)
 const showNotificationDialog = ref(false)
+const loading = ref(false)
 
 // 切换侧边栏
 const toggleSidebar = () => {
   emit('toggle-sidebar')
 }
 
-// 模拟通知数据
-const notifications = ref([
-  {
-    id: 1,
-    type: 'success',
-    title: locale.value === 'zh' ? 'BTC 交易成功' : 'BTC Transaction Successful',
-    message: locale.value === 'zh' ? '您已成功购买 0.5 BTC' : 'You have successfully purchased 0.5 BTC',
-    time: new Date(Date.now() - 5 * 60 * 1000),
-    read: false
-  },
-  {
-    id: 2,
-    type: 'warning',
-    title: locale.value === 'zh' ? '价格提醒' : 'Price Alert',
-    message: locale.value === 'zh' ? 'ETH 价格已达到您设定的 $3,500 目标' : 'ETH price has reached your target of $3,500',
-    time: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    read: false
-  },
-  {
-    id: 3,
-    type: 'info',
-    title: locale.value === 'zh' ? '系统维护通知' : 'System Maintenance Notice',
-    message: locale.value === 'zh' ? '系统将于今晚 2:00-4:00 进行维护' : 'System maintenance scheduled from 2:00-4:00 AM tonight',
-    time: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    read: true
-  },
-  {
-    id: 4,
-    type: 'success',
-    title: locale.value === 'zh' ? '推荐奖励' : 'Referral Reward',
-    message: locale.value === 'zh' ? '恭喜！您获得了 $50 推荐奖励' : 'Congratulations! You earned a $50 referral reward',
-    time: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    read: true
+// Git Commit 通知数据 - 从 API 动态获取
+const notifications = ref([])
+
+// 加载 Git Commit 通知
+const loadCommits = async () => {
+  loading.value = true
+  try {
+    const response = await api.getCommits(10)
+    if (response.success && response.data) {
+      notifications.value = response.data.map(commit => ({
+        id: commit.id,
+        type: commit.type,
+        title: commit.title,
+        message: locale.value === 'zh' 
+          ? `提交者: ${commit.author} | 提交哈希: ${commit.hash}` 
+          : `Author: ${commit.author} | Commit: ${commit.hash}`,
+        time: new Date(commit.timestamp),
+        timeAgo: commit.time_ago,
+        read: commit.read
+      }))
+      updateHasNotifications()
+    }
+  } catch (error) {
+    console.error('加载提交记录失败:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// 组件挂载时加载通知
+onMounted(() => {
+  loadCommits()
+})
 
 const showBackButton = computed(() => {
   return route.path.startsWith('/crypto/') || route.path === '/assets'
@@ -177,30 +177,13 @@ const toggleLanguage = () => {
 }
 
 const updateNotificationLanguage = () => {
-  notifications.value = notifications.value.map(n => {
-    const translations = {
-      1: {
-        zh: { title: 'BTC 交易成功', message: '您已成功购买 0.5 BTC' },
-        en: { title: 'BTC Transaction Successful', message: 'You have successfully purchased 0.5 BTC' }
-      },
-      2: {
-        zh: { title: '价格提醒', message: 'ETH 价格已达到您设定的 $3,500 目标' },
-        en: { title: 'Price Alert', message: 'ETH price has reached your target of $3,500' }
-      },
-      3: {
-        zh: { title: '系统维护通知', message: '系统将于今晚 2:00-4:00 进行维护' },
-        en: { title: 'System Maintenance Notice', message: 'System maintenance scheduled from 2:00-4:00 AM tonight' }
-      },
-      4: {
-        zh: { title: '推荐奖励', message: '恭喜！您获得了 $50 推荐奖励' },
-        en: { title: 'Referral Reward', message: 'Congratulations! You earned a $50 referral reward' }
-      }
-    }
-    return {
-      ...n,
-      ...translations[n.id][locale.value]
-    }
-  })
+  // 重新加载通知以更新语言
+  notifications.value = notifications.value.map(n => ({
+    ...n,
+    message: locale.value === 'zh' 
+      ? `提交者: ${n.message.split('|')[0].split(':')[1].trim().split('Author')[0].trim()} | 提交哈希: ${n.message.split(':').pop().trim()}`
+      : `Author: ${n.message.split('|')[0].split(':')[1].trim().split('提交者')[0].trim()} | Commit: ${n.message.split(':').pop().trim()}`
+  }))
 }
 
 const markAsRead = (id) => {

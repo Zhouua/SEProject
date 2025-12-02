@@ -122,5 +122,29 @@ export const api = {
       console.error('获取流动性分析数据失败:', error)
       return []
     }
+  },
+
+  // 获取 Git Commit 通知
+  async getCommits(limit = 10) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/commits/latest`, {
+        params: { limit }
+      })
+      return response.data
+    } catch (error) {
+      console.error('获取提交记录失败:', error)
+      return { success: false, data: [], count: 0 }
+    }
+  },
+
+  // 获取未读通知数量
+  async getUnreadCommitCount() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/commits/count`)
+      return response.data
+    } catch (error) {
+      console.error('获取未读通知数失败:', error)
+      return { success: false, unread_count: 0 }
+    }
   }
 };
