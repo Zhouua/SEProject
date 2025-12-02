@@ -1,6 +1,9 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
+    <div class="content-wrapper">
+      <TruckLoader :show="loading" text="加载交易量数据中..." />
+      <!-- Page Header 
+      <div class="page-header">
       <div>
         <h2 class="page-title">{{ t('sidebar.volumeComparison') }}</h2>
         <p class="page-subtitle">Compare trading volumes across exchanges</p>
@@ -20,6 +23,7 @@
         />
       </div>
     </div>
+    -->
 
     <div class="stats-grid">
       <div class="card stat-card">
@@ -68,6 +72,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -77,6 +82,7 @@ import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
 import { BarChart2, PieChart, Percent } from 'lucide-vue-next'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
@@ -123,22 +129,35 @@ const formatNumber = (num) => {
   return num.toFixed(2)
 }
 
+const loading = ref(false)
+
 const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
-  const [start, end] = dateRange.value
+  loading.value = true
   
-  const cachedData = store.getCachedPriceData(start, end)
-  if (cachedData) {
-    priceData.value = cachedData
+  // 延迟 50ms，确保 loading 动画能显示
+  await new Promise(resolve => setTimeout(resolve, 50))
+  
+  try {
+    const [start, end] = dateRange.value
+    
+    const cachedData = store.getCachedPriceData(start, end)
+    if (cachedData) {
+      priceData.value = cachedData
+      updateCharts()
+      return
+    }
+    
+    const data = await api.getHistoricalPrices(start, end, 50000)
+    store.setPriceData(data, start, end)
+    priceData.value = data
     updateCharts()
-    return
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    loading.value = false
   }
-  
-  const data = await api.getHistoricalPrices(start, end, 50000)
-  store.setPriceData(data, start, end)
-  priceData.value = data
-  updateCharts()
 }
 
 const initCharts = () => {
@@ -187,6 +206,8 @@ const updateCharts = () => {
           data: ethBinance,
           smooth: true,
           showSymbol: false,
+          sampling: 'lttb',  // ECharts 内置的采样算法，保持趋势
+          large: true,       // 大数据优化
           lineStyle: { color: '#F59E0B', width: 2 },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -201,6 +222,8 @@ const updateCharts = () => {
           data: ethUniswap,
           smooth: true,
           showSymbol: false,
+          sampling: 'lttb',
+          large: true,
           lineStyle: { color: '#EC4899', width: 2 },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -287,10 +310,12 @@ const updateCharts = () => {
       series: [{
         type: 'scatter',
         data: scatterData,
-        symbolSize: 6,
+        large: true,           // 大数据模式
+        largeThreshold: 2000,  // 大于 2000 个点启用大数据优化
+        symbolSize: 4,         // 减小点的大小
         itemStyle: {
           color: '#10B981',
-          opacity: 0.5
+          opacity: 0.4       // 降低透明度
         }
       }]
     })
@@ -307,9 +332,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: -8px auto 0;
+  position: relative;
+}
+
+.content-wrapper {
+  position: relative;
+  min-height: 400px;
 }
 
 .page-header {

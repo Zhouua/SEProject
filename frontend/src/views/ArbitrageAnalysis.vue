@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+    <!--
     <div class="page-header">
       <h2 class="page-title">{{ t('sidebar.arbitrage.title') }}</h2>
       <div class="controls">
@@ -17,7 +18,7 @@
         />
       </div>
     </div>
-
+    -->
     <div class="stats-grid">
       <div class="card stat-card">
         <div class="stat-icon"><Activity :size="24" /></div>
@@ -55,31 +56,33 @@
     </div>
       
     <div class="card table-card">
-      <h3 class="card-title">Opportunity Log</h3>
+      <div class="card-header">
+        <h3 class="card-title">Opportunity Log</h3>
+      </div>
       <el-table 
         :data="opportunities" 
         style="width: 100%" 
         v-loading="tableLoading"
         class="custom-table"
       >
-        <el-table-column prop="time" label="Time" width="180">
+        <el-table-column prop="time" label="Time" width="200">
           <template #default="scope">
-            <span class="text-secondary">{{ new Date(scope.row.time).toLocaleString() }}</span>
+            <span class="text-secondary font-mono">{{ new Date(scope.row.time).toLocaleString() }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="strategy" label="Strategy" width="250">
+        <el-table-column prop="strategy" label="Strategy" min-width="200">
            <template #default="scope">
             <span class="strategy-tag">{{ scope.row.strategy || 'Triangular Arbitrage' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="eth_volume_uniswap" label="Volume (ETH)" width="140">
+        <el-table-column prop="eth_volume_uniswap" label="Volume (ETH)" width="150" align="right">
           <template #default="scope">
-            {{ scope.row.eth_volume_uniswap?.toFixed(4) }}
+            <span class="font-mono">{{ scope.row.eth_volume_uniswap?.toFixed(4) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="potential_profit_usdt" label="Profit (USDT)" sortable>
+        <el-table-column prop="potential_profit_usdt" label="Profit (USDT)" width="150" align="right" sortable>
           <template #default="scope">
-            <span class="text-up font-medium">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
+            <span class="text-up font-medium font-mono">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
           </template>
         </el-table-column>
       </el-table>
@@ -276,9 +279,9 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: -8px auto 0;
 }
 
 .page-header {
@@ -338,7 +341,7 @@ onMounted(() => {
 
 .charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
 }
@@ -354,27 +357,29 @@ onMounted(() => {
 }
 
 .table-card {
-  padding: var(--spacing-lg);
+  padding: 0;
+  overflow: hidden;
   
-  .card-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: var(--spacing-lg);
+  .card-header {
+    padding: var(--spacing-lg) var(--spacing-lg) 0;
   }
-}
-
-.pagination-container {
-  margin-top: var(--spacing-lg);
-  display: flex;
-  justify-content: flex-end;
 }
 
 .strategy-tag {
   background: var(--color-bg-tertiary);
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.pagination-container {
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
 }
 
 /* Custom Element Plus Overrides */
@@ -382,14 +387,23 @@ onMounted(() => {
   --el-table-border-color: var(--color-border);
   --el-table-header-bg-color: var(--color-bg-primary);
   --el-table-row-hover-bg-color: var(--color-bg-tertiary);
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
 }
 
 :deep(.el-table th.el-table__cell) {
   background-color: var(--color-bg-primary);
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 0;
+}
+
+:deep(.el-table td.el-table__cell) {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-bg-tertiary);
 }
 
 :deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {

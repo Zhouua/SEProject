@@ -36,4 +36,21 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """健康检查接口，用于监控服务状态"""
+    from .database import engine
+    from sqlalchemy import text
+    
+    try:
+        # 测试数据库连接
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }

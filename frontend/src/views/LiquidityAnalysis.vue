@@ -1,6 +1,9 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
+    <div class="content-wrapper">
+      <TruckLoader :show="loading" text="加载流动性数据中..." />
+      <!-- Page Header 
+      <div class="page-header">
       <div>
         <h2 class="page-title">{{ t('sidebar.liquidityAnalysis') }}</h2>
         <p class="page-subtitle">Market Depth & Liquidity Analysis</p>
@@ -20,6 +23,7 @@
         />
       </div>
     </div>
+    -->
 
     <div class="liquidity-cards">
       <div class="card liquidity-card">
@@ -105,6 +109,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -113,6 +118,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
@@ -182,25 +188,34 @@ const formatNumber = (num) => {
   return num.toFixed(2)
 }
 
+const loading = ref(false)
+
 const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
-  const [start, end] = dateRange.value
-  
-  const liqData = await api.getLiquidityAnalysis(start, end, '1h')
-  updateLiquidityTrendChart(liqData)
-  
-  const cachedData = store.getCachedPriceData(start, end)
-  if (cachedData) {
-    priceData.value = cachedData
+  loading.value = true
+  try {
+    const [start, end] = dateRange.value
+    
+    const liqData = await api.getLiquidityAnalysis(start, end, '1h')
+    updateLiquidityTrendChart(liqData)
+    
+    const cachedData = store.getCachedPriceData(start, end)
+    if (cachedData) {
+      priceData.value = cachedData
+      updateCharts()
+      return
+    }
+    
+    const data = await api.getHistoricalPrices(start, end, 50000)
+    store.setPriceData(data, start, end)
+    priceData.value = data
     updateCharts()
-    return
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    loading.value = false
   }
-  
-  const data = await api.getHistoricalPrices(start, end, 50000)
-  store.setPriceData(data, start, end)
-  priceData.value = data
-  updateCharts()
 }
 
 const initCharts = () => {
@@ -523,9 +538,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: -8px auto 0;
+  position: relative;
+}
+
+.content-wrapper {
+  position: relative;
+  min-height: 400px;
 }
 
 .page-header {

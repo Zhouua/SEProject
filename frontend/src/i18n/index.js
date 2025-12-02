@@ -2,6 +2,13 @@ import { createI18n } from 'vue-i18n'
 
 const messages = {
   zh: {
+    common: {
+      startDate: '开始日期',
+      endDate: '结束日期'
+    },
+    chart: {
+      candlestickInfo: 'K线图与成交量指标'
+    },
     header: {
       search: '搜索交易对、数据或分析...',
       notifications: '通知'
@@ -127,6 +134,13 @@ const messages = {
     }
   },
   en: {
+    common: {
+      startDate: 'Start Date',
+      endDate: 'End Date'
+    },
+    chart: {
+      candlestickInfo: 'Candlestick chart with volume indicators'
+    },
     header: {
       search: 'Search pairs, data, or analysis...',
       notifications: 'Notifications'

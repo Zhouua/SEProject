@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <TruckLoader :show="loading" text="加载图表数据中..." />
+    <!-- Page Header
     <div class="page-header">
       <h2 class="page-title">{{ t('sidebar.priceComparison.title') }}</h2>
       <div class="controls">
@@ -22,8 +24,8 @@
         />
       </div>
     </div>
-
-    <div class="card chart-card" v-loading="loading">
+    -->
+    <div class="card chart-card">
       <div class="chart-info-bar">
         <div class="chart-legend">
           <div class="legend-section">
@@ -67,6 +69,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const chartRef = ref(null)
@@ -334,9 +337,10 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: -8px auto 0;
+  position: relative;
 }
 
 .page-header {

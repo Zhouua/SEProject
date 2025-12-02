@@ -1,5 +1,8 @@
 <template>
   <div class="dashboard">
+    <!-- <Transition name="fade">
+      <TruckLoader v-if="loading" :show="true" text="加载数据中..." key="dashboard-loader" />
+    </Transition> -->
     <div class="dashboard-layout">
       <!-- 左侧栏 -->
       <div class="left-panel">
@@ -67,10 +70,6 @@
         <div class="top-movers">
           <div class="section-header">
             <h3 class="section-title">Top Arbitrage Opportunities</h3>
-            <router-link to="/markets" class="more-link">
-              {{ t('dashboard.more') }}
-              <el-icon><DArrowRight /></el-icon>
-            </router-link>
           </div>
           <div class="compact-table">
             <div class="table-header">
@@ -158,10 +157,6 @@
         <div class="watchlist">
           <div class="section-header">
             <h3 class="section-title">Recent Arbitrage Opportunities</h3>
-            <router-link to="/markets" class="more-link">
-              {{ t('dashboard.more') }}
-              <el-icon><DArrowRight /></el-icon>
-            </router-link>
           </div>
           
           <div class="compact-table">
@@ -209,6 +204,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
+import TruckLoader from '@/components/TruckLoader.vue'
 import { 
   CaretTop, 
   CaretBottom, 
@@ -247,10 +243,19 @@ let priceChart = null
 let miniChart = null
 
 const loading = ref(false)
+const loadingCount = ref(0)  // 防止重复加载
 
 // Fetch Dashboard Data
 const fetchDashboardData = async () => {
+  // 防止重复调用
+  if (loadingCount.value > 0) {
+    console.log('Already loading, skipping duplicate call')
+    return
+  }
+  
+  loadingCount.value++
   loading.value = true
+  
   try {
     const start = '2025-09-01 00:00:00'
     const end = '2025-09-30 23:59:59'
@@ -324,15 +329,21 @@ const fetchDashboardData = async () => {
     console.error('Error fetching dashboard data:', error)
   } finally {
     loading.value = false
+    loadingCount.value--
   }
 }
 
 // 初始化图表
 onMounted(() => {
+  // 先初始化图表，避免 loading 时渲染问题
+  initPriceChart()
+  initMiniChart()
+  
+  // 延迟加载数据，确保组件完全挂载
   nextTick(() => {
-    initPriceChart()
-    initMiniChart()
-    fetchDashboardData()
+    setTimeout(() => {
+      fetchDashboardData()
+    }, 100)
   })
   
   // 监听窗口大小变化
@@ -505,6 +516,7 @@ const changeTimeRange = (range) => {
   margin-top: -8px; // 微调，与侧边栏 Data Overview 按钮顶部对齐
   padding: 0 24px 24px 20px;
   animation: fadeInDashboard 0.8s ease-out;
+  position: relative;
 }
 
 @keyframes fadeInDashboard {
@@ -516,6 +528,17 @@ const changeTimeRange = (range) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// Transition 动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .dashboard-layout {

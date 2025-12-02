@@ -208,8 +208,15 @@ async def get_price_candles(
             }
         else:
             c = candles[key]["uniswap"]
-            c["high"] = max(c["high"], record.price) if c["high"] else record.price
-            c["low"] = min(c["low"], record.price) if c["low"] else record.price
-            c["close"] = record.price
+            if c["open"] is None:
+                # If bucket exists but Uniswap data was empty (initialized by Binance loop)
+                c["open"] = record.price
+                c["high"] = record.price
+                c["low"] = record.price
+                c["close"] = record.price
+            else:
+                c["high"] = max(c["high"], record.price)
+                c["low"] = min(c["low"], record.price)
+                c["close"] = record.price
 
     return {"success": True, "data": list(candles.values())}
