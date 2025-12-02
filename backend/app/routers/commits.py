@@ -3,6 +3,7 @@ from typing import List
 import subprocess
 from datetime import datetime, timedelta
 import re
+import os
 
 router = APIRouter(
     prefix="/api/commits",
@@ -63,13 +64,24 @@ async def get_latest_commits(limit: int = 10):
     - limit: 返回的 commit 数量，默认 10 条
     """
     try:
+        # 自动检测项目根目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, '../../..'))
+        
+        # 如果设置了环境变量，优先使用环境变量
+        git_repo_path = os.getenv('GIT_REPO_PATH', project_root)
+        
+        # 验证路径是否存在
+        if not os.path.exists(git_repo_path):
+            raise HTTPException(status_code=500, detail=f"Git repository path not found: {git_repo_path}")
+        
         # 执行 git log 命令获取提交历史
         # 格式: hash|subject|relative_time|author_name
         result = subprocess.run(
             ['git', 'log', f'--pretty=format:%h|%s|%cr|%an', f'-{limit}'],
             capture_output=True,
             text=True,
-            cwd='/Users/zhouzian/Desktop/活在浙大/软需/SEProject'  # 项目根目录
+            cwd=git_repo_path  # 使用动态检测的项目根目录
         )
         
         if result.returncode != 0:
@@ -117,11 +129,16 @@ async def get_unread_count():
     try:
         # 这里可以根据实际需求调整逻辑
         # 例如：只计算最近24小时内的提交为未读
+        # 自动检测项目根目录
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, '../../..'))
+        git_repo_path = os.getenv('GIT_REPO_PATH', project_root)
+        
         result = subprocess.run(
             ['git', 'log', '--pretty=format:%cr', '--since="24 hours ago"'],
             capture_output=True,
             text=True,
-            cwd='/Users/zhouzian/Desktop/活在浙大/软需/SEProject'
+            cwd=git_repo_path
         )
         
         if result.returncode == 0:
