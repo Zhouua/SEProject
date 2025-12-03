@@ -57,7 +57,23 @@ const messages = {
       watchlist: '套利机会监控',
       actions: '操作',
       priceDiff: '价差',
-      arbitrageProfit: '套利收益 (USDT)'
+      arbitrageProfit: '套利收益 (USDT)',
+      exportDialog: {
+        title: '导出报告',
+        selectType: '选择导出类型：',
+        pdfReport: 'PDF 报告',
+        pdfDesc: '导出 Dashboard 所有图表为 PDF 文件',
+        csvData: 'CSV 数据',
+        arbitrageCSV: '套利机会 CSV',
+        arbitrageDesc: '导出所有套利机会数据',
+        priceCSV: '价格数据 CSV',
+        priceDesc: '导出所有价格数据',
+        allDataCSV: '完整数据 CSV',
+        allDataDesc: '导出完整数据（价格+套利）',
+        statsCSV: '统计数据 CSV',
+        statsDesc: '导出统计数据概览',
+        close: '关闭'
+      }
     },
     notification: {
       title: '通知中心',
@@ -131,6 +147,49 @@ const messages = {
       endToEndLatency: '端到端延迟',
       apiResponseTime: 'API响应时间(P95)',
       scrollDown: '向下滚动或点击查看更多'
+    },
+    volumeComparison: {
+      binanceVolume: 'Binance 交易量',
+      uniswapVolume: 'Uniswap 交易量',
+      volumeRatio: '交易量比率',
+      binanceUniswap: 'Binance / Uniswap',
+      ethVolumeComparison: 'ETH 交易量对比',
+      usdtVolumeComparison: 'USDT 交易量对比',
+      volumeCorrelation: '交易量相关性 (ETH vs USDT)',
+      volumeCorrelationDesc: '交易规模与价值的相关性',
+      ethVolume: 'ETH 交易量',
+      usdtVolume: 'USDT 交易量',
+      binance: 'Binance',
+      uniswap: 'Uniswap'
+    },
+    liquidityAnalysis: {
+      avgVolumePerMin: '每分钟平均交易量',
+      totalVolume: '总交易量',
+      liquidityScore: '流动性评分',
+      cex: 'CEX',
+      dex: 'DEX',
+      liquidityTrend: '流动性趋势 (USDT)',
+      liquidityTrendDesc: '随时间变化的总流动性价值',
+      hourlyVolumeComparison: '每小时交易量对比',
+      liquidityDistribution: '流动性分布',
+      priceVolatilityAnalysis: '价格波动分析',
+      priceVolatilityDesc: '每小时价格变化百分比',
+      binance: 'Binance',
+      uniswap: 'Uniswap'
+    },
+    arbitrageAnalysis: {
+      totalOpportunities: '总机会数',
+      totalPotentialProfit: '总潜在收益',
+      avgProfitPerTrade: '平均每笔收益',
+      dailyProfitTrend: '每日收益趋势',
+      profitDistribution: '收益分布',
+      opportunityLog: '机会记录',
+      time: '时间',
+      strategy: '策略',
+      volumeEth: '交易量 (ETH)',
+      profitUsdt: '收益 (USDT)',
+      triangularArbitrage: '三角套利',
+      profitRange: '收益范围'
     }
   },
   en: {
@@ -263,6 +322,49 @@ const messages = {
       endToEndLatency: 'End-to-End Latency',
       apiResponseTime: 'API Response Time (P95)',
       scrollDown: 'Scroll down or click for more'
+    },
+    volumeComparison: {
+      binanceVolume: 'Binance Volume',
+      uniswapVolume: 'Uniswap Volume',
+      volumeRatio: 'Volume Ratio',
+      binanceUniswap: 'Binance / Uniswap',
+      ethVolumeComparison: 'ETH Volume Comparison',
+      usdtVolumeComparison: 'USDT Volume Comparison',
+      volumeCorrelation: 'Volume Correlation (ETH vs USDT)',
+      volumeCorrelationDesc: 'Correlation between trade size and value',
+      ethVolume: 'ETH Volume',
+      usdtVolume: 'USDT Volume',
+      binance: 'Binance',
+      uniswap: 'Uniswap'
+    },
+    liquidityAnalysis: {
+      avgVolumePerMin: 'Avg. Volume / Min',
+      totalVolume: 'Total Volume',
+      liquidityScore: 'Liquidity Score',
+      cex: 'CEX',
+      dex: 'DEX',
+      liquidityTrend: 'Liquidity Trend (USDT)',
+      liquidityTrendDesc: 'Total liquidity value over time',
+      hourlyVolumeComparison: 'Hourly Volume Comparison',
+      liquidityDistribution: 'Liquidity Distribution',
+      priceVolatilityAnalysis: 'Price Volatility Analysis',
+      priceVolatilityDesc: 'Hourly price change percentage',
+      binance: 'Binance',
+      uniswap: 'Uniswap'
+    },
+    arbitrageAnalysis: {
+      totalOpportunities: 'Total Opportunities',
+      totalPotentialProfit: 'Total Potential Profit',
+      avgProfitPerTrade: 'Avg. Profit / Trade',
+      dailyProfitTrend: 'Daily Profit Trend',
+      profitDistribution: 'Profit Distribution',
+      opportunityLog: 'Opportunity Log',
+      time: 'Time',
+      strategy: 'Strategy',
+      volumeEth: 'Volume (ETH)',
+      profitUsdt: 'Profit (USDT)',
+      triangularArbitrage: 'Triangular Arbitrage',
+      profitRange: 'Profit Range'
     }
   }
 }

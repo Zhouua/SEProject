@@ -34,8 +34,8 @@
             </div>
             
             <div class="profit-actions">
-              <button class="btn btn-dark">{{ t('dashboard.deposit') }}</button>
-              <button class="btn btn-primary">{{ t('dashboard.withdraw') }}</button>
+              <button class="btn btn-dark" @click="handleRefreshData">{{ t('dashboard.deposit') }}</button>
+              <button class="btn btn-primary" @click="showExportDialog = true">{{ t('dashboard.withdraw') }}</button>
             </div>
           </div>
 
@@ -195,6 +195,66 @@
         </div>
       </div>
     </div>
+
+    <!-- 导出对话框 -->
+    <el-dialog 
+      v-model="showExportDialog" 
+      title="导出报告" 
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <div class="export-options">
+        <h4>选择导出类型：</h4>
+        
+        <div class="export-section">
+          <h5><el-icon><Document /></el-icon> PDF 报告</h5>
+          <p class="export-desc">导出 Dashboard 所有图表为 PDF 文件</p>
+          <el-button type="primary" @click="handleExportPDF" :loading="exportingPDF">
+            <el-icon><Download /></el-icon> 导出 PDF
+          </el-button>
+        </div>
+
+        <el-divider />
+
+        <div class="export-section">
+          <h5><el-icon><Tickets /></el-icon> CSV 数据</h5>
+          
+          <div class="csv-options">
+            <div class="csv-option">
+              <p class="export-desc">导出所有套利机会数据</p>
+              <el-button @click="handleExportArbitrageCSV">
+                <el-icon><Download /></el-icon> 套利机会 CSV
+              </el-button>
+            </div>
+            
+            <div class="csv-option">
+              <p class="export-desc">导出所有价格数据</p>
+              <el-button @click="handleExportPriceCSV">
+                <el-icon><Download /></el-icon> 价格数据 CSV
+              </el-button>
+            </div>
+            
+            <div class="csv-option">
+              <p class="export-desc">导出完整数据（价格+套利）</p>
+              <el-button @click="handleExportAllDataCSV">
+                <el-icon><Download /></el-icon> 完整数据 CSV
+              </el-button>
+            </div>
+            
+            <div class="csv-option">
+              <p class="export-desc">导出统计数据概览</p>
+              <el-button @click="handleExportStatsCSV">
+                <el-icon><Download /></el-icon> 统计数据 CSV
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showExportDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -205,6 +265,8 @@ import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
 import TruckLoader from '@/components/TruckLoader.vue'
+import { exportChartsToPDF, exportDashboardStats } from '@/utils/exportUtils'
+import { ElMessage } from 'element-plus'
 import { 
   CaretTop, 
   CaretBottom, 
@@ -214,7 +276,10 @@ import {
   BottomLeft,
   DArrowRight,
   StarFilled,
-  MoreFilled
+  MoreFilled,
+  Document,
+  Download,
+  Tickets
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -245,6 +310,11 @@ let miniChart = null
 const loading = ref(false)
 const loadingCount = ref(0)  // 防止重复加载
 
+// 导出相关
+const showExportDialog = ref(false)
+const exportingPDF = ref(false)
+const statsData = ref(null) // 用于存储统计数据
+
 // Fetch Dashboard Data
 const fetchDashboardData = async () => {
   // 防止重复调用
@@ -263,6 +333,9 @@ const fetchDashboardData = async () => {
     // 1. Fetch Statistics Overview
     const stats = await api.getStatistics(start, end)
     if (stats) {
+      // 存储统计数据用于导出
+      statsData.value = stats
+      
       // Use Total Volume (ETH) as "Wallet Balance" equivalent for display
       // Since we don't have total volume in stats overview, let's sum it up from price data or just use a placeholder
       // Actually, let's use Total Potential Profit as Revenue
@@ -507,6 +580,78 @@ const updateMiniChart = (data) => {
 const changeTimeRange = (range) => {
   selectedTimeRange.value = range
   // In a real app, we would filter data based on range
+}
+
+// 刷新数据
+const handleRefreshData = () => {
+  ElMessage.info('正在刷新数据...')
+  fetchDashboardData()
+}
+
+// 导出PDF
+const handleExportPDF = async () => {
+  if (!priceChart || !miniChart) {
+    ElMessage.warning('图表未加载完成，请稍后再试')
+    return
+  }
+  
+  exportingPDF.value = true
+  
+  try {
+    const charts = [
+      {
+        title: '价格趋势图 (Price Trend)',
+        instance: priceChart,
+        width: 800,
+        height: 400
+      },
+      {
+        title: '价格走势图 (Price Mini Chart)',
+        instance: miniChart,
+        width: 400,
+        height: 200
+      }
+    ]
+    
+    await exportChartsToPDF(charts, `dashboard_report_${new Date().toISOString().split('T')[0]}.pdf`)
+  } catch (error) {
+    console.error('PDF导出错误:', error)
+  } finally {
+    exportingPDF.value = false
+  }
+}
+
+// 导出套利机会CSV
+const handleExportArbitrageCSV = () => {
+  const start = '2025-09-01 00:00:00'
+  const end = '2025-09-30 23:59:59'
+  api.exportArbitrageCSV(start, end)
+  ElMessage.success('正在下载套利机会数据...')
+}
+
+// 导出价格数据CSV
+const handleExportPriceCSV = () => {
+  const start = '2025-09-01 00:00:00'
+  const end = '2025-09-30 23:59:59'
+  api.exportPriceDataCSV(start, end)
+  ElMessage.success('正在下载价格数据...')
+}
+
+// 导出完整数据CSV
+const handleExportAllDataCSV = () => {
+  const start = '2025-09-01 00:00:00'
+  const end = '2025-09-30 23:59:59'
+  api.exportAllDataCSV(start, end)
+  ElMessage.success('正在下载完整数据...')
+}
+
+// 导出统计数据CSV
+const handleExportStatsCSV = () => {
+  if (!statsData.value) {
+    ElMessage.warning('统计数据未加载，请稍后再试')
+    return
+  }
+  exportDashboardStats(statsData.value, `dashboard_stats_${new Date().toISOString().split('T')[0]}.csv`)
 }
 </script>
 
@@ -992,5 +1137,67 @@ const changeTimeRange = (range) => {
 
 .change-icon {
   font-size: 12px;
+}
+
+// 导出对话框样式
+.export-options {
+  padding: 10px 0;
+  
+  h4 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  
+  .export-section {
+    margin-bottom: 20px;
+    
+    h5 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      
+      .el-icon {
+        font-size: 18px;
+        color: #4CAF50;
+      }
+    }
+    
+    .export-desc {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .el-button {
+      margin-top: 8px;
+      
+      .el-icon {
+        margin-right: 6px;
+      }
+    }
+  }
+  
+  .csv-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    
+    .csv-option {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      
+      .export-desc {
+        margin-bottom: 8px;
+      }
+    }
+  }
 }
 </style>

@@ -178,14 +178,27 @@ async def get_price_candles(
         if key not in candles:
             candles[key] = {
                 "time": key,
-                "binance": {"open": record.price, "high": record.price, "low": record.price, "close": record.price},
-                "uniswap": {"open": None, "high": None, "low": None, "close": None}
+                "binance": {
+                    "open": record.price, 
+                    "high": record.price, 
+                    "low": record.price, 
+                    "close": record.price,
+                    "usdt_volume": record.usdt_vol
+                },
+                "uniswap": {
+                    "open": None, 
+                    "high": None, 
+                    "low": None, 
+                    "close": None,
+                    "usdt_volume": 0
+                }
             }
         else:
             c = candles[key]["binance"]
             c["high"] = max(c["high"], record.price)
             c["low"] = min(c["low"], record.price)
             c["close"] = record.price
+            c["usdt_volume"] += record.usdt_vol
 
     for record in records_uni:
         dt = record.time_align
@@ -203,8 +216,20 @@ async def get_price_candles(
         if key not in candles:
             candles[key] = {
                 "time": key,
-                "binance": {"open": None, "high": None, "low": None, "close": None},
-                "uniswap": {"open": record.price, "high": record.price, "low": record.price, "close": record.price}
+                "binance": {
+                    "open": None, 
+                    "high": None, 
+                    "low": None, 
+                    "close": None,
+                    "usdt_volume": 0
+                },
+                "uniswap": {
+                    "open": record.price, 
+                    "high": record.price, 
+                    "low": record.price, 
+                    "close": record.price,
+                    "usdt_volume": record.usdt_vol
+                }
             }
         else:
             c = candles[key]["uniswap"]
@@ -214,9 +239,11 @@ async def get_price_candles(
                 c["high"] = record.price
                 c["low"] = record.price
                 c["close"] = record.price
+                c["usdt_volume"] = record.usdt_vol
             else:
                 c["high"] = max(c["high"], record.price)
                 c["low"] = min(c["low"], record.price)
                 c["close"] = record.price
+                c["usdt_volume"] += record.usdt_vol
 
     return {"success": True, "data": list(candles.values())}

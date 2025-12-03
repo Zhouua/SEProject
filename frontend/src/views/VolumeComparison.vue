@@ -29,7 +29,7 @@
       <div class="card stat-card">
         <div class="stat-icon binance"><BarChart2 :size="24" /></div>
         <div class="stat-content">
-          <span class="label">Binance Volume</span>
+          <span class="label">{{ t('volumeComparison.binanceVolume') }}</span>
           <span class="value">{{ formatNumber(totalVolumeBinance) }} ETH</span>
           <span class="sub-value">≈ ${{ formatNumber(totalUsdtBinance) }}</span>
         </div>
@@ -38,7 +38,7 @@
       <div class="card stat-card">
         <div class="stat-icon uniswap"><PieChart :size="24" /></div>
         <div class="stat-content">
-          <span class="label">Uniswap Volume</span>
+          <span class="label">{{ t('volumeComparison.uniswapVolume') }}</span>
           <span class="value">{{ formatNumber(totalVolumeUniswap) }} ETH</span>
           <span class="sub-value">≈ ${{ formatNumber(totalUsdtUniswap) }}</span>
         </div>
@@ -47,27 +47,27 @@
       <div class="card stat-card">
         <div class="stat-icon ratio"><Percent :size="24" /></div>
         <div class="stat-content">
-          <span class="label">Volume Ratio</span>
+          <span class="label">{{ t('volumeComparison.volumeRatio') }}</span>
           <span class="value">{{ volumeRatio }}</span>
-          <span class="sub-value">Binance / Uniswap</span>
+          <span class="sub-value">{{ t('volumeComparison.binanceUniswap') }}</span>
         </div>
       </div>
     </div>
 
     <div class="charts-grid">
       <div class="card chart-card">
-        <h3 class="card-title">ETH Volume Comparison</h3>
+        <h3 class="card-title">{{ t('volumeComparison.ethVolumeComparison') }}</h3>
         <div ref="ethVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
       <div class="card chart-card">
-        <h3 class="card-title">USDT Volume Comparison</h3>
+        <h3 class="card-title">{{ t('volumeComparison.usdtVolumeComparison') }}</h3>
         <div ref="usdtVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
       <div class="card chart-card full-width">
-        <h3 class="card-title">Volume Correlation (ETH vs USDT)</h3>
-        <p class="chart-desc">Correlation between trade size and value</p>
+        <h3 class="card-title">{{ t('volumeComparison.volumeCorrelation') }}</h3>
+        <p class="chart-desc">{{ t('volumeComparison.volumeCorrelationDesc') }}</p>
         <div ref="volumeRatioChartRef" style="width: 100%; height: 350px;"></div>
       </div>
     </div>
@@ -201,7 +201,7 @@ const updateCharts = () => {
       },
       series: [
         {
-          name: 'Binance',
+          name: t('volumeComparison.binance'),
           type: 'line',
           data: ethBinance,
           smooth: true,
@@ -217,7 +217,7 @@ const updateCharts = () => {
           }
         },
         {
-          name: 'Uniswap',
+          name: t('volumeComparison.uniswap'),
           type: 'line',
           data: ethUniswap,
           smooth: true,
@@ -263,13 +263,13 @@ const updateCharts = () => {
       },
       series: [
         {
-          name: 'Binance',
+          name: t('volumeComparison.binance'),
           type: 'bar',
           data: usdtBinance,
           itemStyle: { color: '#F59E0B' }
         },
         {
-          name: 'Uniswap',
+          name: t('volumeComparison.uniswap'),
           type: 'bar',
           data: usdtUniswap,
           itemStyle: { color: '#EC4899' }

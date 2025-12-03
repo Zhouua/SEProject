@@ -146,5 +146,34 @@ export const api = {
       console.error('获取未读通知数失败:', error)
       return { success: false, unread_count: 0 }
     }
+  },
+
+  // 导出套利机会CSV
+  exportArbitrageCSV(start, end, minProfit = 0) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    if (minProfit > 0) params.append('min_profit', minProfit)
+    
+    window.open(`${API_BASE_URL}/api/export/arbitrage-opportunities/csv?${params.toString()}`, '_blank')
+  },
+
+  // 导出价格数据CSV
+  exportPriceDataCSV(start, end, limit = 50000) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    params.append('limit', limit)
+    
+    window.open(`${API_BASE_URL}/api/export/price-data/csv?${params.toString()}`, '_blank')
+  },
+
+  // 导出所有数据CSV
+  exportAllDataCSV(start, end) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    
+    window.open(`${API_BASE_URL}/api/export/all-data/csv?${params.toString()}`, '_blank')
   }
 };
