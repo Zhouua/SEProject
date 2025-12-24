@@ -90,10 +90,10 @@ async def import_csv_data():
     await create_tables()
 
     csv_path = "app/data/aligned_usdt_eth_complete.csv"
-    print(f"📁 正在读取CSV文件: {csv_path}")
+    print(f"正在读取CSV文件: {csv_path}")
 
     df = pd.read_csv(csv_path)
-    print(f"✅ CSV文件读取完成，共 {len(df):,} 条记录")
+    print(f"CSV文件读取完成，共 {len(df):,} 条记录")
 
     required_columns = ['time_align', 'price_b', 'price_u', 'eth_vol_b', 'eth_vol_u', 'usdt_vol_b', 'usdt_vol_u']
     missing_columns = [col for col in required_columns if col not in df.columns]
@@ -106,7 +106,7 @@ async def import_csv_data():
         uni_exist = (await session.execute(select(UniswapData).limit(1))).scalar_one_or_none()
         arb_exist = (await session.execute(select(ArbitrageData).limit(1))).scalar_one_or_none()
         if bn_exist or uni_exist or arb_exist:
-            print("⚠️  数据库已有数据，跳过导入")
+            print("数据库已有数据，跳过导入")
             return
 
         batch_size = 1000
@@ -118,7 +118,7 @@ async def import_csv_data():
         arbitrage_list = []
 
         # 使用tqdm创建进度条
-        print("🚀 开始导入数据...\n")
+        print("开始导入数据...\n")
         with tqdm(total=len(df), desc="导入进度", unit="条", ncols=100,
                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
 
@@ -205,11 +205,11 @@ async def import_csv_data():
                     arbitrage_list.clear()
 
         print("\n" + "=" * 60)
-        print("✅ 导入完成！")
+        print("导入完成！")
         print("=" * 60)
-        print(f"📊 总记录数: {total_imported:,}")
-        print(f"💰 套利机会数: {arbitrage_count:,}")
-        print(f"📈 套利机会占比: {arbitrage_count / total_imported * 100:.2f}%")
+        print(f"总记录数: {total_imported:,}")
+        print(f"套利机会数: {arbitrage_count:,}")
+        print(f"套利机会占比: {arbitrage_count / total_imported * 100:.2f}%")
         print("=" * 60)
 
 
