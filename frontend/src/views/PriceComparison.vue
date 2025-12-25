@@ -1,58 +1,8 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <h2 class="page-title">{{ t('sidebar.priceComparison.title') }}</h2>
-      <div class="controls">
-        <el-radio-group v-model="interval" size="default" @change="fetchData" class="custom-radio">
-          <el-radio-button label="1h">1H</el-radio-button>
-          <el-radio-button label="4h">4H</el-radio-button>
-          <el-radio-button label="1d">1D</el-radio-button>
-        </el-radio-group>
-        <el-date-picker
-          v-model="dateRange"
-          type="datetimerange"
-          range-separator="-"
-          :start-placeholder="t('common.startDate')"
-          :end-placeholder="t('common.endDate')"
-          :default-value="['2025-09-01 00:00:00', '2025-09-30 23:59:59']"
-          :disabled-date="disabledDate"
-          value-format="YYYY-MM-DD HH:mm:ss"
-          @change="fetchData"
-          class="custom-picker"
-        />
-      </div>
-    </div>
-
-    <div class="card chart-card" v-loading="loading">
+    <TruckLoader :show="loading" text="加载图表数据中..." />
+    <div class="card chart-card">
       <div class="chart-info-bar">
-        <div class="chart-legend">
-          <div class="legend-section">
-            <span class="legend-title">Binance:</span>
-            <div class="legend-items">
-              <div class="legend-item">
-                <span class="color-box" style="background: #10B981;"></span>
-                <span class="legend-text">Up</span>
-              </div>
-              <div class="legend-item">
-                <span class="color-box" style="background: #EF4444;"></span>
-                <span class="legend-text">Down</span>
-              </div>
-            </div>
-          </div>
-          <div class="legend-section">
-            <span class="legend-title">Uniswap:</span>
-            <div class="legend-items">
-              <div class="legend-item">
-                <span class="color-box" style="background: #3B82F6;"></span>
-                <span class="legend-text">Up</span>
-              </div>
-              <div class="legend-item">
-                <span class="color-box" style="background: #F59E0B;"></span>
-                <span class="legend-text">Down</span>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="chart-description">
           <span class="desc-text">{{ t('chart.candlestickInfo') || 'Candlestick chart with volume indicators' }}</span>
         </div>
@@ -67,6 +17,7 @@ import { ref, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const chartRef = ref(null)
@@ -159,7 +110,9 @@ const updateChart = (data) => {
     },
     legend: {
       data: ['Binance', 'Uniswap', 'Binance Volume', 'Uniswap Volume'],
-      bottom: 0,
+      top: 10,
+      right: 30,
+      orient: 'horizontal',
       icon: 'circle',
       itemGap: 24,
       textStyle: { color: '#6B7280', fontSize: 12 }
@@ -171,14 +124,14 @@ const updateChart = (data) => {
       {
         left: '3%',
         right: '3%',
-        top: '5%',
+        top: '10%',
         height: '55%',
         containLabel: true
       },
       {
         left: '3%',
         right: '3%',
-        top: '68%',
+        top: '72%',
         height: '18%',
         containLabel: true
       }
@@ -255,7 +208,7 @@ const updateChart = (data) => {
         show: true,
         xAxisIndex: [0, 1],
         type: 'slider',
-        bottom: '5%',
+        bottom: '2%',
         height: 20,
         start: 0,
         end: 100,
@@ -334,28 +287,10 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xl);
-  
-  .page-title {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-  }
-}
-
-.controls {
-  display: flex;
-  gap: 16px;
-  align-items: center;
+  margin: -8px auto 0;
+  position: relative;
 }
 
 .chart-card {
@@ -365,51 +300,10 @@ onMounted(() => {
 
 .chart-info-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--color-bg-tertiary);
-  border-radius: 8px;
-  
-  .chart-legend {
-    display: flex;
-    gap: 32px;
-    
-    .legend-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      
-      .legend-title {
-        font-weight: 600;
-        color: var(--color-text-primary);
-        font-size: 13px;
-      }
-      
-      .legend-items {
-        display: flex;
-        gap: 8px;
-        
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          
-          .color-box {
-            width: 12px;
-            height: 12px;
-            border-radius: 2px;
-          }
-          
-          .legend-text {
-            font-size: 12px;
-            color: var(--color-text-secondary);
-          }
-        }
-      }
-    }
-  }
+  padding: 0 var(--spacing-lg);
   
   .chart-description {
     .desc-text {
@@ -418,27 +312,5 @@ onMounted(() => {
       font-style: italic;
     }
   }
-}
-
-/* Custom Element Plus Overrides */
-:deep(.el-radio-button__inner) {
-  border: none;
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
-  border-radius: 6px;
-  margin-right: 4px;
-  box-shadow: none !important;
-}
-
-:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background-color: var(--color-text-primary);
-  color: white;
-  box-shadow: none;
-}
-
-:deep(.el-date-editor.el-input__wrapper) {
-  box-shadow: none;
-  background-color: var(--color-bg-tertiary);
-  border-radius: 8px;
 }
 </style>

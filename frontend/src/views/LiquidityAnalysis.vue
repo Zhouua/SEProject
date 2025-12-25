@@ -1,6 +1,9 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
+    <div class="content-wrapper">
+      <TruckLoader :show="loading" text="加载流动性数据中..." />
+      <!-- Page Header 
+      <div class="page-header">
       <div>
         <h2 class="page-title">{{ t('sidebar.liquidityAnalysis') }}</h2>
         <p class="page-subtitle">Market Depth & Liquidity Analysis</p>
@@ -20,6 +23,7 @@
         />
       </div>
     </div>
+    -->
 
     <div class="liquidity-cards">
       <div class="card liquidity-card">
@@ -28,19 +32,19 @@
             <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" class="platform-icon" />
             <h3>Binance</h3>
           </div>
-          <span class="badge centralized">CEX</span>
+          <span class="badge centralized">{{ t('liquidityAnalysis.cex') }}</span>
         </div>
         <div class="metrics">
           <div class="metric">
-            <span class="label">Avg. Volume / Min</span>
+            <span class="label">{{ t('liquidityAnalysis.avgVolumePerMin') }}</span>
             <span class="value">{{ formatNumber(avgVolumeBinance) }} ETH</span>
           </div>
           <div class="metric">
-            <span class="label">Total Volume</span>
+            <span class="label">{{ t('liquidityAnalysis.totalVolume') }}</span>
             <span class="value">${{ formatNumber(totalUsdtBinance) }}</span>
           </div>
           <div class="metric">
-            <span class="label">Liquidity Score</span>
+            <span class="label">{{ t('liquidityAnalysis.liquidityScore') }}</span>
             <div class="score-bar">
               <div class="score-fill binance" :style="{ width: liquidityScoreBinance + '%' }"></div>
               <span class="score-text">{{ liquidityScoreBinance }}/100</span>
@@ -55,19 +59,19 @@
             <img src="https://cryptologos.cc/logos/uniswap-uni-logo.png" class="platform-icon" />
             <h3>Uniswap V3</h3>
           </div>
-          <span class="badge decentralized">DEX</span>
+          <span class="badge decentralized">{{ t('liquidityAnalysis.dex') }}</span>
         </div>
         <div class="metrics">
           <div class="metric">
-            <span class="label">Avg. Volume / Min</span>
+            <span class="label">{{ t('liquidityAnalysis.avgVolumePerMin') }}</span>
             <span class="value">{{ formatNumber(avgVolumeUniswap) }} ETH</span>
           </div>
           <div class="metric">
-            <span class="label">Total Volume</span>
+            <span class="label">{{ t('liquidityAnalysis.totalVolume') }}</span>
             <span class="value">${{ formatNumber(totalUsdtUniswap) }}</span>
           </div>
           <div class="metric">
-            <span class="label">Liquidity Score</span>
+            <span class="label">{{ t('liquidityAnalysis.liquidityScore') }}</span>
             <div class="score-bar">
               <div class="score-fill uniswap" :style="{ width: liquidityScoreUniswap + '%' }"></div>
               <span class="score-text">{{ liquidityScoreUniswap }}/100</span>
@@ -80,31 +84,32 @@
     <div class="charts-grid">
       <div class="card chart-card full-width">
         <div class="chart-header">
-          <h3 class="chart-title">Liquidity Trend (USDT)</h3>
-          <p class="chart-desc">Total liquidity value over time</p>
+          <h3 class="chart-title">{{ t('liquidityAnalysis.liquidityTrend') }}</h3>
+          <p class="chart-desc">{{ t('liquidityAnalysis.liquidityTrendDesc') }}</p>
         </div>
         <div ref="liquidityTrendChartRef" style="width: 100%; height: 400px;"></div>
       </div>
 
       <div class="card chart-card">
-        <h3 class="chart-title">Hourly Volume Comparison</h3>
+        <h3 class="chart-title">{{ t('liquidityAnalysis.hourlyVolumeComparison') }}</h3>
         <div ref="hourlyVolumeChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
       <div class="card chart-card">
-        <h3 class="chart-title">Liquidity Distribution</h3>
+        <h3 class="chart-title">{{ t('liquidityAnalysis.liquidityDistribution') }}</h3>
         <div ref="liquidityDistributionChartRef" style="width: 100%; height: 350px;"></div>
       </div>
 
       <div class="card chart-card full-width">
         <div class="chart-header">
-          <h3 class="chart-title">Price Volatility Analysis</h3>
-          <p class="chart-desc">Hourly price change percentage</p>
+          <h3 class="chart-title">{{ t('liquidityAnalysis.priceVolatilityAnalysis') }}</h3>
+          <p class="chart-desc">{{ t('liquidityAnalysis.priceVolatilityDesc') }}</p>
         </div>
         <div ref="volatilityChartRef" style="width: 100%; height: 350px;"></div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -113,6 +118,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
+import TruckLoader from '@/components/TruckLoader.vue'
 
 const { t } = useI18n()
 const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
@@ -182,25 +188,34 @@ const formatNumber = (num) => {
   return num.toFixed(2)
 }
 
+const loading = ref(false)
+
 const fetchData = async () => {
   if (!dateRange.value || dateRange.value.length !== 2) return
   
-  const [start, end] = dateRange.value
-  
-  const liqData = await api.getLiquidityAnalysis(start, end, '1h')
-  updateLiquidityTrendChart(liqData)
-  
-  const cachedData = store.getCachedPriceData(start, end)
-  if (cachedData) {
-    priceData.value = cachedData
+  loading.value = true
+  try {
+    const [start, end] = dateRange.value
+    
+    const liqData = await api.getLiquidityAnalysis(start, end, '1h')
+    updateLiquidityTrendChart(liqData)
+    
+    const cachedData = store.getCachedPriceData(start, end)
+    if (cachedData) {
+      priceData.value = cachedData
+      updateCharts()
+      return
+    }
+    
+    const data = await api.getHistoricalPrices(start, end, 50000)
+    store.setPriceData(data, start, end)
+    priceData.value = data
     updateCharts()
-    return
+  } catch (error) {
+    console.error('Error fetching data:', error)
+  } finally {
+    loading.value = false
   }
-  
-  const data = await api.getHistoricalPrices(start, end, 50000)
-  store.setPriceData(data, start, end)
-  priceData.value = data
-  updateCharts()
 }
 
 const initCharts = () => {
@@ -232,7 +247,7 @@ const updateLiquidityTrendChart = (data) => {
       textStyle: { color: '#111827' }
     },
     legend: {
-      data: ['Binance', 'Uniswap'],
+      data: [t('liquidityAnalysis.binance'), t('liquidityAnalysis.uniswap')],
       bottom: 0,
       icon: 'circle',
       textStyle: { color: '#6B7280' }
@@ -266,7 +281,7 @@ const updateLiquidityTrendChart = (data) => {
     },
     series: [
       {
-        name: 'Binance',
+        name: t('liquidityAnalysis.binance'),
         type: 'line',
         data: binanceLiq,
         smooth: true,
@@ -280,7 +295,7 @@ const updateLiquidityTrendChart = (data) => {
         }
       },
       {
-        name: 'Uniswap',
+        name: t('liquidityAnalysis.uniswap'),
         type: 'line',
         data: uniswapLiq,
         smooth: true,
@@ -336,13 +351,13 @@ const updateCharts = () => {
       },
       series: [
         {
-          name: 'Binance',
+          name: t('liquidityAnalysis.binance'),
           type: 'bar',
           data: avgBinance,
           itemStyle: { color: '#F59E0B', borderRadius: [4, 4, 0, 0] }
         },
         {
-          name: 'Uniswap',
+          name: t('liquidityAnalysis.uniswap'),
           type: 'bar',
           data: avgUniswap,
           itemStyle: { color: '#EC4899', borderRadius: [4, 4, 0, 0] }
@@ -390,13 +405,13 @@ const updateCharts = () => {
       },
       series: [
         {
-          name: 'Binance',
+          name: t('liquidityAnalysis.binance'),
           type: 'bar',
           data: distributionB,
           itemStyle: { color: '#F59E0B', borderRadius: [4, 4, 0, 0] }
         },
         {
-          name: 'Uniswap',
+          name: t('liquidityAnalysis.uniswap'),
           type: 'bar',
           data: distributionU,
           itemStyle: { color: '#EC4899', borderRadius: [4, 4, 0, 0] }
@@ -449,7 +464,7 @@ const updateCharts = () => {
         }
       },
       legend: {
-        data: ['Binance', 'Uniswap'],
+        data: [t('liquidityAnalysis.binance'), t('liquidityAnalysis.uniswap')],
         bottom: 0,
         icon: 'circle',
         textStyle: { color: '#6B7280' }
@@ -491,7 +506,7 @@ const updateCharts = () => {
       ],
       series: [
         {
-          name: 'Binance',
+          name: t('liquidityAnalysis.binance'),
           type: 'line',
           data: binanceVol,
           smooth: true,
@@ -500,7 +515,7 @@ const updateCharts = () => {
           lineStyle: { width: 2 }
         },
         {
-          name: 'Uniswap',
+          name: t('liquidityAnalysis.uniswap'),
           type: 'line',
           data: uniswapVol,
           smooth: true,
@@ -523,9 +538,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: 0 24px 24px 20px;
   max-width: 1600px;
-  margin: 0 auto;
+  margin: -8px auto 0;
+  position: relative;
+}
+
+.content-wrapper {
+  position: relative;
+  min-height: 400px;
 }
 
 .page-header {

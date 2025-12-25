@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 修改导入路径 - 使用相对导入
-from .routers import prices, arbitrage, statistics, liquidity
+from .routers import prices, arbitrage, statistics, liquidity, commits, export
 
 app = FastAPI(
     title="Crypto Arbitrage API",
@@ -24,6 +24,8 @@ app.include_router(prices.router)
 app.include_router(arbitrage.router)
 app.include_router(statistics.router)
 app.include_router(liquidity.router)
+app.include_router(commits.router)
+app.include_router(export.router)
 
 @app.get("/")
 async def root():
@@ -36,4 +38,21 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """健康检查接口，用于监控服务状态"""
+    from .database import engine
+    from sqlalchemy import text
+    
+    try:
+        # 测试数据库连接
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }

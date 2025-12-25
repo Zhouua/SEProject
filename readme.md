@@ -34,6 +34,8 @@ python scripts/reset_database.py
 python scripts/import_csv_to_db.py
 # 启动后端
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 或者也可以
+python run_server.py  
 ```
 
 ### 1. `binance_data` 表

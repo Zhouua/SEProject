@@ -122,5 +122,58 @@ export const api = {
       console.error('获取流动性分析数据失败:', error)
       return []
     }
+  },
+
+  // 获取 Git Commit 通知
+  async getCommits(limit = 10) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/commits/latest`, {
+        params: { limit }
+      })
+      return response.data
+    } catch (error) {
+      console.error('获取提交记录失败:', error)
+      return { success: false, data: [], count: 0 }
+    }
+  },
+
+  // 获取未读通知数量
+  async getUnreadCommitCount() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/commits/count`)
+      return response.data
+    } catch (error) {
+      console.error('获取未读通知数失败:', error)
+      return { success: false, unread_count: 0 }
+    }
+  },
+
+  // 导出套利机会CSV
+  exportArbitrageCSV(start, end, minProfit = 0) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    if (minProfit > 0) params.append('min_profit', minProfit)
+    
+    window.open(`${API_BASE_URL}/api/export/arbitrage-opportunities/csv?${params.toString()}`, '_blank')
+  },
+
+  // 导出价格数据CSV
+  exportPriceDataCSV(start, end, limit = 50000) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    params.append('limit', limit)
+    
+    window.open(`${API_BASE_URL}/api/export/price-data/csv?${params.toString()}`, '_blank')
+  },
+
+  // 导出所有数据CSV
+  exportAllDataCSV(start, end) {
+    const params = new URLSearchParams()
+    if (start) params.append('start_time', start)
+    if (end) params.append('end_time', end)
+    
+    window.open(`${API_BASE_URL}/api/export/all-data/csv?${params.toString()}`, '_blank')
   }
 };
