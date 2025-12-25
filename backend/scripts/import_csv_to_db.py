@@ -59,7 +59,7 @@ def calculate_multifactor_score(price_b, apamm_price, eth_vol_u):
     return score
 
 
-def calculate_arbitrage_profit(price_b: float, price_u: float, eth_vol_u: float) -> tuple[bool, float]:
+def calculate_arbitrage_profit(price_b: float, price_u: float, eth_vol_u: float) -> tuple[bool, float, float, float]:
     """
     采用改进版算法计算套利利润：
     1. 计算受滑点影响的PAMM价格 (APAMM)
@@ -68,7 +68,7 @@ def calculate_arbitrage_profit(price_b: float, price_u: float, eth_vol_u: float)
     4. 加入gas费用扣除
     5. 结合多因子评分判定是否套利信号
 
-    返回元组：是否为套利机会，套利利润
+    返回元组：是否为套利机会，套利利润，获利百分比，套利评分
     """
     apamm_price = calculate_apamm(price_u, eth_vol_u)
 
@@ -78,12 +78,21 @@ def calculate_arbitrage_profit(price_b: float, price_u: float, eth_vol_u: float)
     # 理论套利利润：以交易量和价格差计算，减去gas费
     profit = eth_vol_u * (effective_sell_price - apamm_price) - GAS_FEE
 
+    # 🆕 计算获利百分比（本金 = 在Uniswap买入的成本）
+    principal = eth_vol_u * apamm_price
+    profit_percentage = (profit / principal * 100) if principal > 0 else 0.0
+
     # 多因子评分决定是否真正套利机会
     score = calculate_multifactor_score(price_b, apamm_price, eth_vol_u)
 
     is_arbitrage = (profit > 0) and (score > 0)
 
-    return is_arbitrage, profit if is_arbitrage else 0.0
+    return (
+        is_arbitrage, 
+        profit if is_arbitrage else 0.0,
+        profit_percentage if is_arbitrage else 0.0,
+        score
+    )
 
 
 async def import_csv_data():
@@ -144,7 +153,9 @@ async def import_csv_data():
                 uniswap_list.append(uniswap)
 
                 # 计算套利（使用改进版）
-                is_arbitrage, arbitrage_profit = calculate_arbitrage_profit(row['price_b'], row['price_u'], row['eth_vol_u'])
+                is_arbitrage, arbitrage_profit, profit_percentage, opportunity_score = calculate_arbitrage_profit(
+                    row['price_b'], row['price_u'], row['eth_vol_u']
+                )
                 if is_arbitrage:
                     arbitrage_count += 1
 
@@ -179,7 +190,7 @@ async def import_csv_data():
                         row_data = df.iloc[idx+1-len(binance_list)+row_idx]
 
                         # 计算套利（改进版）
-                        is_arbitrage, arbitrage_profit = calculate_arbitrage_profit(
+                        is_arbitrage, arbitrage_profit, profit_percentage, opportunity_score = calculate_arbitrage_profit(
                             row_data['price_b'], row_data['price_u'], row_data['eth_vol_u']
                         )
                         arbitrage = ArbitrageData(
@@ -187,7 +198,9 @@ async def import_csv_data():
                             binance_id=bn_obj.id,
                             uniswap_id=uni_obj.id,
                             arbitrage_profit=arbitrage_profit,
-                            is_arbitrage_opportunity=is_arbitrage
+                            is_arbitrage_opportunity=is_arbitrage,
+                            profit_percentage=profit_percentage,  # 🆕
+                            opportunity_score=opportunity_score    # 🆕
                         )
                         arbitrage_list.append(arbitrage)
 

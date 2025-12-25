@@ -28,7 +28,7 @@ cd backend
 pip install -r requirements.txt
 # 配置环境，并在.env中填好信息
 cp .env.example .env
-# 算法已经更新，请先清除旧的表
+# 算法已经更新/已经新增获利百分比和套利机会评分属性，请先清除旧的表
 python scripts/reset_database.py
 # 导入数据库计算套利机会
 python scripts/import_csv_to_db.py

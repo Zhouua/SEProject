@@ -34,6 +34,8 @@ class ArbitrageDataBase(BaseModel):
     uniswap_id: int = Field(..., description="关联Uniswap数据ID")
     arbitrage_profit: Optional[float] = Field(None, description="套利利润（USDT）")
     is_arbitrage_opportunity: bool = Field(False, description="是否为套利机会")
+    profit_percentage: Optional[float] = Field(None, description="获利百分比(%)")  # 🆕
+    opportunity_score: Optional[float] = Field(None, description="套利机会评分")  # 🆕
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,6 +88,8 @@ class ArbitrageOpportunityItem(BaseModel):
     price_diff_percent: float = Field(..., description="价格差百分比")
     eth_volume_uniswap: float = Field(..., description="Uniswap ETH交易量")
     potential_profit_usdt: float = Field(..., description="潜在利润（USDT）")
+    profit_percentage: Optional[float] = Field(None, description="获利百分比(%)")  # 🆕
+    opportunity_score: Optional[float] = Field(None, description="套利机会评分")  # 🆕
     strategy: str = Field(..., description="套利策略描述")
 
 
@@ -103,6 +107,8 @@ class TopArbitrageItem(BaseModel):
     price_diff: float = Field(..., description="价格差")
     eth_volume: float = Field(..., description="ETH交易量")
     potential_profit_usdt: float = Field(..., description="潜在利润（USDT）")
+    profit_percentage: Optional[float] = Field(None, description="获利百分比(%)")  # 🆕
+    opportunity_score: Optional[float] = Field(None, description="套利机会评分")  # 🆕
 
 
 class TopArbitrageResponse(BaseModel):
