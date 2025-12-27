@@ -1,3 +1,5 @@
+# backend/app/routers/arbitrage.py
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -14,6 +16,15 @@ from ..schemas import (
 )
 
 router = APIRouter(prefix="/api/arbitrage", tags=["Arbitrage"])
+
+
+def get_strategy_description(direction: int) -> str:
+    """根据方向返回策略描述"""
+    if direction == 0:
+        return "Buy on Uniswap → Sell on Binance"
+    else:
+        return "Buy on Binance → Sell on Uniswap"
+
 
 @router.get("/opportunities", response_model=ArbitrageOpportunitiesResponse)
 async def get_arbitrage_opportunities(
@@ -50,6 +61,10 @@ async def get_arbitrage_opportunities(
         query = query.order_by(ArbitrageData.time_align.desc())
     elif sort_by == "time_asc":
         query = query.order_by(ArbitrageData.time_align.asc())
+    elif sort_by == "score_desc":
+        query = query.order_by(ArbitrageData.score.desc())
+    elif sort_by == "profit_rate_desc":
+        query = query.order_by(ArbitrageData.profit_rate.desc())
     else:
         query = query.order_by(ArbitrageData.arbitrage_profit.desc())
 
@@ -66,7 +81,10 @@ async def get_arbitrage_opportunities(
             price_diff_percent=round((bn.price - uni.price) / uni.price * 100, 4) if uni.price != 0 else 0,
             eth_volume_uniswap=round(uni.eth_vol, 4),
             potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
-            strategy="Buy on Uniswap → Sell on Binance"
+            profit_rate=round(arb.profit_rate or 0, 6),
+            score=round(arb.score or 0, 2),
+            direction=arb.direction or 0,
+            strategy=get_strategy_description(arb.direction or 0)
         )
         for arb, bn, uni in records
     ]
@@ -81,16 +99,33 @@ async def get_arbitrage_opportunities(
 @router.get("/top", response_model=TopArbitrageResponse)
 async def get_top_arbitrage_opportunities(
     top_n: int = Query(10, ge=1, le=100),
+    sort_by: str = Query("profit", description="排序依据: profit, profit_rate, score"),
     db: AsyncSession = Depends(get_db)
 ):
+    """
+    获取Top N套利机会
+    
+    sort_by参数:
+    - profit: 按利润排序（默认）
+    - profit_rate: 按利润率排序
+    - score: 按评分排序
+    """
     query = (
         select(ArbitrageData, BinanceData, UniswapData)
         .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
         .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
         .where(ArbitrageData.is_arbitrage_opportunity == True)
-        .order_by(ArbitrageData.arbitrage_profit.desc())
-        .limit(top_n)
     )
+    
+    # 根据sort_by参数选择排序字段
+    if sort_by == "profit_rate":
+        query = query.order_by(ArbitrageData.profit_rate.desc())
+    elif sort_by == "score":
+        query = query.order_by(ArbitrageData.score.desc())
+    else:  # 默认按利润排序
+        query = query.order_by(ArbitrageData.arbitrage_profit.desc())
+    
+    query = query.limit(top_n)
     result = await db.execute(query)
     records = result.all()
 
@@ -102,7 +137,10 @@ async def get_top_arbitrage_opportunities(
             uniswap_price=round(uni.price, 2),
             price_diff=round(bn.price - uni.price, 2),
             eth_volume=round(uni.eth_vol, 4),
-            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2)
+            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
+            profit_rate=round(arb.profit_rate or 0, 6),
+            score=round(arb.score or 0, 2),
+            direction=arb.direction or 0
         )
         for idx, (arb, bn, uni) in enumerate(records)
     ]

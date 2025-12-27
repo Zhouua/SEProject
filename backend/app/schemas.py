@@ -33,12 +33,12 @@ class ArbitrageDataBase(BaseModel):
     binance_id: int = Field(..., description="关联Binance数据ID")
     uniswap_id: int = Field(..., description="关联Uniswap数据ID")
     arbitrage_profit: Optional[float] = Field(None, description="套利利润（USDT）")
+    profit_rate: Optional[float] = Field(None, description="利润率")
+    score: Optional[float] = Field(None, description="多因子评分")
+    direction: Optional[int] = Field(None, description="套利方向（0=U2B, 1=B2U）")
     is_arbitrage_opportunity: bool = Field(False, description="是否为套利机会")
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
 
 
 # ======= 价格相关模型 =======
@@ -86,6 +86,9 @@ class ArbitrageOpportunityItem(BaseModel):
     price_diff_percent: float = Field(..., description="价格差百分比")
     eth_volume_uniswap: float = Field(..., description="Uniswap ETH交易量")
     potential_profit_usdt: float = Field(..., description="潜在利润（USDT）")
+    profit_rate: float = Field(..., description="利润率")
+    score: float = Field(..., description="多因子评分")
+    direction: int = Field(..., description="套利方向（0=U2B, 1=B2U）")
     strategy: str = Field(..., description="套利策略描述")
 
 
@@ -103,6 +106,9 @@ class TopArbitrageItem(BaseModel):
     price_diff: float = Field(..., description="价格差")
     eth_volume: float = Field(..., description="ETH交易量")
     potential_profit_usdt: float = Field(..., description="潜在利润（USDT）")
+    profit_rate: float = Field(..., description="利润率")
+    score: float = Field(..., description="多因子评分")
+    direction: int = Field(..., description="套利方向（0=U2B, 1=B2U）")
 
 
 class TopArbitrageResponse(BaseModel):
