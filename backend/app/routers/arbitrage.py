@@ -66,8 +66,6 @@ async def get_arbitrage_opportunities(
             price_diff_percent=round((bn.price - uni.price) / uni.price * 100, 4) if uni.price != 0 else 0,
             eth_volume_uniswap=round(uni.eth_vol, 4),
             potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
-            profit_percentage=round(arb.profit_percentage or 0, 4),  # 🆕
-            opportunity_score=round(arb.opportunity_score or 0, 2),  # 🆕
             strategy="Buy on Uniswap → Sell on Binance"
         )
         for arb, bn, uni in records
@@ -104,9 +102,7 @@ async def get_top_arbitrage_opportunities(
             uniswap_price=round(uni.price, 2),
             price_diff=round(bn.price - uni.price, 2),
             eth_volume=round(uni.eth_vol, 4),
-            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
-            profit_percentage=round(arb.profit_percentage or 0, 4),  # 🆕
-            opportunity_score=round(arb.opportunity_score or 0, 2)   # 🆕
+            potential_profit_usdt=round(arb.arbitrage_profit or 0, 2)
         )
         for idx, (arb, bn, uni) in enumerate(records)
     ]

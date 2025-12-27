@@ -57,10 +57,6 @@ class ArbitrageData(Base):
 
     arbitrage_profit = Column(Float, nullable=True)
     is_arbitrage_opportunity = Column(Boolean, default=False)
-    
-    # 🆕 新增字段
-    profit_percentage = Column(Float, nullable=True, comment='获利百分比(%)')
-    opportunity_score = Column(Float, nullable=True, comment='套利机会评分')
 
     binance_data = relationship("BinanceData", back_populates="arbitrage_records")
     uniswap_data = relationship("UniswapData", back_populates="arbitrage_records")
