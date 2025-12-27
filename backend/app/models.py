@@ -1,3 +1,5 @@
+# app/models.py
+
 from sqlalchemy import Column, Integer, Float, DateTime, Boolean, Index, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -17,7 +19,6 @@ class BinanceData(Base):
     eth_vol = Column(Float, nullable=False)
     usdt_vol = Column(Float, nullable=False)
 
-    # 与套利数据的一对多关系（可选，方便关联查询）
     arbitrage_records = relationship("ArbitrageData", back_populates="binance_data")
 
     def __repr__(self):
@@ -56,15 +57,19 @@ class ArbitrageData(Base):
     uniswap_id = Column(Integer, ForeignKey("uniswap_data.id"), nullable=False)
 
     arbitrage_profit = Column(Float, nullable=True)
+    profit_rate = Column(Float, nullable=True)  # 利润率
+    score = Column(Float, nullable=True)  # 多因子评分
+    direction = Column(Integer, nullable=True)  # 0: U2B, 1: B2U
     is_arbitrage_opportunity = Column(Boolean, default=False)
 
     binance_data = relationship("BinanceData", back_populates="arbitrage_records")
     uniswap_data = relationship("UniswapData", back_populates="arbitrage_records")
 
-    # 创建复合索引，优化查询
     __table_args__ = (
         Index('idx_arbitrage_time_profit', 'time_align', 'arbitrage_profit'),
+        Index('idx_arbitrage_score', 'score'),
+        Index('idx_arbitrage_direction', 'direction'),
     )
 
     def __repr__(self):
-        return f"<ArbitrageData(time={self.time_align}, profit={self.arbitrage_profit}, arb={self.is_arbitrage_opportunity})>"
+        return f"<ArbitrageData(time={self.time_align}, profit={self.arbitrage_profit}, rate={self.profit_rate}, score={self.score}, dir={self.direction})>"

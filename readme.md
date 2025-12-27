@@ -32,6 +32,8 @@ cp .env.example .env
 python scripts/reset_database.py
 # 导入数据库计算套利机会
 python scripts/import_csv_to_db.py
+# 简单检查套利表内容
+python scripts/check_database.py.py
 # 启动后端
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # 或者也可以

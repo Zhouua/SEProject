@@ -1,4 +1,4 @@
-# scripts/import_csv_to_db_fixed.py
+# scripts/import_csv_to_db.py
 
 import asyncio
 import sys
@@ -24,7 +24,7 @@ WEIGHTS = {
     "price_diff": 0.4,
     "volume": 0.3,
     "liquidity": 0.2,
-    "gas_fee": 0.1
+    "gas_fee": -0.1  # 负权重
 }
 
 
@@ -37,61 +37,94 @@ def calculate_apamm(price_u, eth_vol_u):
     return apamm_price
 
 
-def calculate_multifactor_score(price_diff, eth_vol_u):
+def calculate_multifactor_score(price_b, apamm_price, eth_vol_u, eth_vol_b):
     """
-    多因子评分计算
+    多因子评分计算（归一化处理）
+    
+    为了统一量纲，将各因子归一化到相似的数量级：
+    - 价格差：直接使用（美元）
+    - 交易量：使用平均值（ETH）
+    - 流动性：归一化到千为单位
+    - gas费：直接使用（美元）
     """
-    volume = eth_vol_u
-    liquidity = LIQUIDITY_ESTIMATE
-    gas_fee = -GAS_FEE
-
+    # 价格差（绝对值）
+    price_diff = abs(price_b - apamm_price)
+    
+    # 交易量（使用平均值）
+    volume = (eth_vol_u + eth_vol_b) / 2
+    
+    # 流动性（归一化到千为单位，使其与其他因子量级相近）
+    liquidity_normalized = LIQUIDITY_ESTIMATE / 1000
+    
+    # gas费
+    gas_fee = GAS_FEE
+    
+    # 加权求和
     score = (
         WEIGHTS["price_diff"] * price_diff +
         WEIGHTS["volume"] * volume +
-        WEIGHTS["liquidity"] * liquidity +
-        WEIGHTS["gas_fee"] * gas_fee
+        WEIGHTS["liquidity"] * liquidity_normalized +
+        WEIGHTS["gas_fee"] * gas_fee  # 权重已经是负的
     )
+    
     return score
 
 
-def calculate_arbitrage_profit_bidirectional(price_b: float, price_u: float, eth_vol_u: float) -> tuple[bool, float, str]:
+def calculate_arbitrage_profit_bidirectional(price_b: float, price_u: float, eth_vol_u: float, eth_vol_b: float) -> tuple[bool, float, float, float, int]:
     """
     双向计算套利利润，选择最优方向
     
-    返回：(是否为套利机会, 套利利润, 套利方向)
-    套利方向: "U2B" (Uniswap买入Binance卖出) 或 "B2U" (Binance买入Uniswap卖出)
+    返回：(是否为套利机会, 套利利润, 利润率, 评分, 方向)
+    方向: 0 = U2B (Uniswap买Binance卖), 1 = B2U (Binance买Uniswap卖)
     """
     apamm_price = calculate_apamm(price_u, eth_vol_u)
     
-    # 方向1: Uniswap买入 -> Binance卖出
-    # 在Uniswap买入需要支付手续费，在Binance卖出也需要支付手续费
-    buy_price_u = apamm_price * (1 + UNISWAP_FEE)  # Uniswap买入价（含手续费）
-    sell_price_b = price_b * (1 - BINANCE_FEE)      # Binance卖出价（扣除手续费）
-    profit_u2b = eth_vol_u * (sell_price_b - buy_price_u) - GAS_FEE
+    # 使用平均交易量
+    avg_eth_vol = (eth_vol_u + eth_vol_b) / 2
     
-    # 方向2: Binance买入 -> Uniswap卖出
-    # 在Binance买入需要支付手续费，在Uniswap卖出也需要支付手续费
-    buy_price_b = price_b * (1 + BINANCE_FEE)       # Binance买入价（含手续费）
-    sell_price_u = apamm_price * (1 - UNISWAP_FEE)  # Uniswap卖出价（扣除手续费）
-    profit_b2u = eth_vol_u * (sell_price_u - buy_price_b) - GAS_FEE
+    # 方向1: Uniswap买入 -> Binance卖出 (direction = 0)
+    buy_price_u = apamm_price * (1 + UNISWAP_FEE)  # 买入成本
+    sell_price_b = price_b * (1 - BINANCE_FEE)      # 卖出收入
+    
+    # 投入：买入ETH的总成本
+    investment_u2b = avg_eth_vol * buy_price_u
+    # 收入：卖出ETH的总收入
+    revenue_u2b = avg_eth_vol * sell_price_b
+    # 利润：收入 - 投入 - gas费
+    profit_u2b = revenue_u2b - investment_u2b - GAS_FEE
+    # 利润率：利润 / 投入
+    profit_rate_u2b = profit_u2b / investment_u2b if investment_u2b > 0 else 0
+    
+    # 方向2: Binance买入 -> Uniswap卖出 (direction = 1)
+    buy_price_b = price_b * (1 + BINANCE_FEE)       # 买入成本
+    sell_price_u = apamm_price * (1 - UNISWAP_FEE)  # 卖出收入
+    
+    # 投入：买入ETH的总成本
+    investment_b2u = avg_eth_vol * buy_price_b
+    # 收入：卖出ETH的总收入
+    revenue_b2u = avg_eth_vol * sell_price_u
+    # 利润：收入 - 投入 - gas费
+    profit_b2u = revenue_b2u - investment_b2u - GAS_FEE
+    # 利润率：利润 / 投入
+    profit_rate_b2u = profit_b2u / investment_b2u if investment_b2u > 0 else 0
     
     # 选择利润更高的方向
     if profit_u2b > profit_b2u:
         best_profit = profit_u2b
-        direction = "U2B"
-        price_diff = sell_price_b - buy_price_u
+        best_profit_rate = profit_rate_u2b
+        direction = 0  # U2B
     else:
         best_profit = profit_b2u
-        direction = "B2U"
-        price_diff = sell_price_u - buy_price_b
+        best_profit_rate = profit_rate_b2u
+        direction = 1  # B2U
     
-    # 多因子评分
-    score = calculate_multifactor_score(price_diff, eth_vol_u)
+    # 多因子评分（使用原始价格，不考虑方向）
+    score = calculate_multifactor_score(price_b, apamm_price, eth_vol_u, eth_vol_b)
     
     # 判断是否为套利机会
     is_arbitrage = (best_profit > 0) and (score > 0)
     
-    return is_arbitrage, best_profit if is_arbitrage else 0.0, direction
+    return is_arbitrage, best_profit if is_arbitrage else 0.0, best_profit_rate if is_arbitrage else 0.0, score, direction
 
 
 async def import_csv_data():
@@ -120,7 +153,7 @@ async def import_csv_data():
         batch_size = 1000
         total_imported = 0
         arbitrage_count = 0
-        direction_stats = {"U2B": 0, "B2U": 0}  # 统计套利方向
+        direction_stats = {0: 0, 1: 0}  # 统计套利方向
 
         binance_list = []
         uniswap_list = []
@@ -150,8 +183,8 @@ async def import_csv_data():
                 uniswap_list.append(uniswap)
 
                 # 双向计算套利
-                is_arbitrage, arbitrage_profit, direction = calculate_arbitrage_profit_bidirectional(
-                    row['price_b'], row['price_u'], row['eth_vol_u']
+                is_arbitrage, arbitrage_profit, profit_rate, score, direction = calculate_arbitrage_profit_bidirectional(
+                    row['price_b'], row['price_u'], row['eth_vol_u'], row['eth_vol_b']
                 )
                 if is_arbitrage:
                     arbitrage_count += 1
@@ -185,8 +218,8 @@ async def import_csv_data():
                         row_idx = times.index(b_time)
                         row_data = df.iloc[idx+1-len(binance_list)+row_idx]
 
-                        is_arbitrage, arbitrage_profit, direction = calculate_arbitrage_profit_bidirectional(
-                            row_data['price_b'], row_data['price_u'], row_data['eth_vol_u']
+                        is_arbitrage, arbitrage_profit, profit_rate, score, direction = calculate_arbitrage_profit_bidirectional(
+                            row_data['price_b'], row_data['price_u'], row_data['eth_vol_u'], row_data['eth_vol_b']
                         )
                         
                         arbitrage = ArbitrageData(
@@ -194,6 +227,9 @@ async def import_csv_data():
                             binance_id=bn_obj.id,
                             uniswap_id=uni_obj.id,
                             arbitrage_profit=arbitrage_profit,
+                            profit_rate=profit_rate,
+                            score=score,
+                            direction=direction,
                             is_arbitrage_opportunity=is_arbitrage
                         )
                         arbitrage_list.append(arbitrage)
@@ -214,9 +250,10 @@ async def import_csv_data():
         print(f"📊 总记录数: {total_imported:,}")
         print(f"💰 套利机会数: {arbitrage_count:,}")
         print(f"📈 套利机会占比: {arbitrage_count / total_imported * 100:.2f}%")
-        print(f"🔄 套利方向分布:")
-        print(f"   Uniswap买→Binance卖: {direction_stats['U2B']:,} ({direction_stats['U2B']/arbitrage_count*100:.2f}%)")
-        print(f"   Binance买→Uniswap卖: {direction_stats['B2U']:,} ({direction_stats['B2U']/arbitrage_count*100:.2f}%)")
+        if arbitrage_count > 0:
+            print(f"🔄 套利方向分布:")
+            print(f"   Uniswap买→Binance卖 (0): {direction_stats[0]:,} ({direction_stats[0]/arbitrage_count*100:.2f}%)")
+            print(f"   Binance买→Uniswap卖 (1): {direction_stats[1]:,} ({direction_stats[1]/arbitrage_count*100:.2f}%)")
         print("=" * 60)
 
 
