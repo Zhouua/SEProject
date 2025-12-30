@@ -56,7 +56,15 @@
             <el-table-column prop="desc" label="说明" />
           </el-table>
 
-          <h3>3. arbitrage_data 表</h3>
+          <h3>3. trade_data 表</h3>
+          <el-table :data="tradeTableData" border style="width: 100%" class="doc-table">
+            <el-table-column prop="field" label="字段名" width="120" />
+            <el-table-column prop="type" label="类型" width="100" />
+            <el-table-column prop="constraint" label="约束" width="180" />
+            <el-table-column prop="desc" label="说明" />
+          </el-table>
+
+          <h3>4. arbitrage_data 表</h3>
           <el-table :data="arbitrageTableData" border style="width: 100%" class="doc-table">
             <el-table-column prop="field" label="字段名" width="120" />
             <el-table-column prop="type" label="类型" width="100" />
@@ -118,13 +126,23 @@ const uniswapTableData = [
   { field: 'usdt_vol', type: 'Float', constraint: '非空', desc: 'Uniswap 平台 USDT 交易量（金额单位）' },
 ]
 
+const tradeTableData = [
+  { field: 'id', type: 'Integer', constraint: '主键、自增、单字段索引', desc: '表唯一标识' },
+  { field: 'time_align', type: 'DateTime', constraint: '非空、单字段索引', desc: '对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）' },
+  { field: 'binance_id', type: 'Integer', constraint: '外键、非空', desc: '关联 binance_data 表的 id' },
+  { field: 'uniswap_id', type: 'Integer', constraint: '外键、非空', desc: '关联 uniswap_data 表的 id' },
+]
+
 const arbitrageTableData = [
   { field: 'id', type: 'Integer', constraint: '主键、自增、单字段索引', desc: '表唯一标识' },
   { field: 'time_align', type: 'DateTime', constraint: '非空、单字段索引', desc: '对齐后的交易时间戳（格式：YYYY-MM-DD HH:MM）' },
-  { field: 'binance_id', type: 'Integer', constraint: '外键、非空、单字段索引', desc: '关联 binance_data 表的 id' },
-  { field: 'uniswap_id', type: 'Integer', constraint: '外键、非空、单字段索引', desc: '关联 uniswap_data 表的 id' },
+  { field: 'binance_id', type: 'Integer', constraint: '外键、非空', desc: '关联 binance_data 表的 id' },
+  { field: 'uniswap_id', type: 'Integer', constraint: '外键、非空', desc: '关联 uniswap_data 表的 id' },
+  { field: 'trade_id', type: 'Integer', constraint: '外键、非空、单字段索引', desc: '关联 trade_data 表的 id' },
   { field: 'arbitrage_profit', type: 'Float', constraint: '可空', desc: '潜在套利利润（USDT）' },
-  { field: 'is_arbitrage_opportunity', type: 'Boolean', constraint: '默认值 False', desc: '是否为套利机会（利润 > 0 则为 True）' },
+  { field: 'profit_rate', type: 'Float', constraint: '可空', desc: '利润率' },
+  { field: 'score', type: 'Float', constraint: '可空', desc: '多因子评分' },
+  { field: 'direction', type: 'Integer', constraint: '可空', desc: '套利方向（0=U2B, 1=B2U）' },
 ]
 </script>
 

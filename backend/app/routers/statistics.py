@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import BinanceData, UniswapData, ArbitrageData
+from ..models import BinanceData, UniswapData, ArbitrageData, TradeData
 from ..schemas import (
     StatisticsOverviewResponse,
     StatisticsOverviewData,
@@ -23,35 +23,27 @@ async def get_statistics_overview(
     end_time: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
+    time_filters_trade = []
+    if start_time:
+        time_filters_trade.append(TradeData.time_align >= start_time)
+    if end_time:
+        time_filters_trade.append(TradeData.time_align <= end_time)
+
     time_filters_arb = []
     if start_time:
         time_filters_arb.append(ArbitrageData.time_align >= start_time)
     if end_time:
         time_filters_arb.append(ArbitrageData.time_align <= end_time)
 
-    time_filters_bn = []
-    if start_time:
-        time_filters_bn.append(BinanceData.time_align >= start_time)
-    if end_time:
-        time_filters_bn.append(BinanceData.time_align <= end_time)
-
-    time_filters_uni = []
-    if start_time:
-        time_filters_uni.append(UniswapData.time_align >= start_time)
-    if end_time:
-        time_filters_uni.append(UniswapData.time_align <= end_time)
-
-    # 总记录数：用套利表
-    total_query = select(func.count(ArbitrageData.id))
-    if time_filters_arb:
-        total_query = total_query.where(and_(*time_filters_arb))
+    # 总记录数：使用 trade_data 表
+    total_query = select(func.count(TradeData.id))
+    if time_filters_trade:
+        total_query = total_query.where(and_(*time_filters_trade))
     total_result = await db.execute(total_query)
     total_records = total_result.scalar() or 0
 
-    # 套利机会数量
-    arb_count_query = select(func.count(ArbitrageData.id)).where(
-        ArbitrageData.is_arbitrage_opportunity == True
-    )
+    # 套利机会数量：使用 arbitrage_data 表
+    arb_count_query = select(func.count(ArbitrageData.id))
     if time_filters_arb:
         arb_count_query = arb_count_query.where(and_(*time_filters_arb))
     arb_count_result = await db.execute(arb_count_query)
@@ -63,40 +55,40 @@ async def get_statistics_overview(
         func.max(ArbitrageData.arbitrage_profit),
         func.avg(ArbitrageData.arbitrage_profit),
         func.sum(ArbitrageData.arbitrage_profit)
-    ).where(ArbitrageData.is_arbitrage_opportunity == True)
+    )
     if time_filters_arb:
         profit_query = profit_query.where(and_(*time_filters_arb))
     profit_result = await db.execute(profit_query)
     profit_stats = profit_result.first()
 
-    # 价格统计 - 需要分别从两表查询
+    # 价格统计 - 从 trade_data 表查询
     price_stats_bn_query = select(
-        func.min(BinanceData.price),
-        func.max(BinanceData.price),
-        func.avg(BinanceData.price)
+        func.min(TradeData.binance_price),
+        func.max(TradeData.binance_price),
+        func.avg(TradeData.binance_price)
     )
-    if time_filters_bn:
-        price_stats_bn_query = price_stats_bn_query.where(and_(*time_filters_bn))
+    if time_filters_trade:
+        price_stats_bn_query = price_stats_bn_query.where(and_(*time_filters_trade))
     price_stats_bn_result = await db.execute(price_stats_bn_query)
     price_stats_bn = price_stats_bn_result.first()
 
     price_stats_uni_query = select(
-        func.min(UniswapData.price),
-        func.max(UniswapData.price),
-        func.avg(UniswapData.price)
+        func.min(TradeData.uniswap_price),
+        func.max(TradeData.uniswap_price),
+        func.avg(TradeData.uniswap_price)
     )
-    if time_filters_uni:
-        price_stats_uni_query = price_stats_uni_query.where(and_(*time_filters_uni))
+    if time_filters_trade:
+        price_stats_uni_query = price_stats_uni_query.where(and_(*time_filters_trade))
     price_stats_uni_result = await db.execute(price_stats_uni_query)
     price_stats_uni = price_stats_uni_result.first()
 
-    # 时间范围 - 以套利表为主
+    # 时间范围 - 以 trade_data 表为主
     time_query = select(
-        func.min(ArbitrageData.time_align),
-        func.max(ArbitrageData.time_align)
+        func.min(TradeData.time_align),
+        func.max(TradeData.time_align)
     )
-    if time_filters_arb:
-        time_query = time_query.where(and_(*time_filters_arb))
+    if time_filters_trade:
+        time_query = time_query.where(and_(*time_filters_trade))
     time_result = await db.execute(time_query)
     time_range_res = time_result.first()
 

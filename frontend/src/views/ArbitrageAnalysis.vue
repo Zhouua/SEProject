@@ -65,24 +65,32 @@
         v-loading="tableLoading"
         class="custom-table"
       >
-        <el-table-column prop="time" label="Time" width="200">
+        <el-table-column prop="trade_id" label="TRADE ID" width="120" align="center">
           <template #default="scope">
-            <span class="text-secondary font-mono">{{ new Date(scope.row.time).toLocaleString() }}</span>
+            <span class="trade-id-tag">#{{ scope.row.trade_id }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="strategy" label="Strategy" min-width="200">
+        <el-table-column prop="time" label="TIME" width="180">
+          <template #default="scope">
+            <span class="text-secondary font-mono">{{ formatTime(scope.row.time) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="strategy" label="STRATEGY" min-width="200">
            <template #default="scope">
-            <span class="strategy-tag">{{ scope.row.strategy || 'Triangular Arbitrage' }}</span>
+            <span class="strategy-tag" :class="getStrategyClass(scope.row.direction)">{{ scope.row.strategy || 'Triangular Arbitrage' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="eth_volume_uniswap" label="Volume (ETH)" width="150" align="right">
+        <el-table-column prop="potential_profit_usdt" label="PROFIT (USDT)" width="150" align="right" sortable>
           <template #default="scope">
-            <span class="font-mono">{{ scope.row.eth_volume_uniswap?.toFixed(4) }}</span>
+            <span class="text-up font-medium font-mono">+${{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="potential_profit_usdt" label="Profit (USDT)" width="150" align="right" sortable>
+        <el-table-column label="DETAILS" width="120" align="center">
           <template #default="scope">
-            <span class="text-up font-medium font-mono">+{{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
+            <el-button type="primary" size="small" @click="showDetails(scope.row)" class="details-btn">
+              <el-icon><View /></el-icon>
+              View
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -100,6 +108,105 @@
         />
       </div>
     </div>
+
+    <!-- 详情模态框 -->
+    <el-dialog
+      v-model="detailsVisible"
+      title="Arbitrage Opportunity Details"
+      width="600px"
+      :close-on-click-modal="false"
+      class="details-dialog"
+    >
+      <div v-if="selectedOpportunity" class="details-content">
+        <!-- 基础信息 -->
+        <div class="detail-section">
+          <h4 class="section-title">
+            <el-icon><Document /></el-icon>
+            Basic Information
+          </h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="label">Trade ID:</span>
+              <span class="value">#{{ selectedOpportunity.trade_id }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Time:</span>
+              <span class="value">{{ formatTime(selectedOpportunity.time) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Strategy:</span>
+              <span class="value">
+                <span class="strategy-tag" :class="getStrategyClass(selectedOpportunity.direction)">
+                  {{ selectedOpportunity.strategy }}
+                </span>
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Direction:</span>
+              <span class="value">{{ selectedOpportunity.direction === 0 ? 'Uniswap → Binance' : 'Binance → Uniswap' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 价格信息 -->
+        <div class="detail-section">
+          <h4 class="section-title">
+            <el-icon><TrendingUp /></el-icon>
+            Price Information
+          </h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="label">Binance Price:</span>
+              <span class="value price">${{ selectedOpportunity.binance_price?.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Uniswap Price:</span>
+              <span class="value price">${{ selectedOpportunity.uniswap_price?.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Price Difference:</span>
+              <span class="value" :class="selectedOpportunity.price_diff >= 0 ? 'text-up' : 'text-down'">
+                ${{ selectedOpportunity.price_diff?.toFixed(2) }} ({{ selectedOpportunity.price_diff_percent?.toFixed(2) }}%)
+              </span>
+            </div>
+            <div class="detail-item">
+              <span class="label">ETH Volume (Uniswap):</span>
+              <span class="value">{{ selectedOpportunity.eth_volume_uniswap?.toFixed(4) }} ETH</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 收益信息 -->
+        <div class="detail-section">
+          <h4 class="section-title">
+            <el-icon><DollarSign /></el-icon>
+            Profit Metrics
+          </h4>
+          <div class="detail-grid">
+            <div class="detail-item highlight">
+              <span class="label">Potential Profit:</span>
+              <span class="value profit">+${{ selectedOpportunity.potential_profit_usdt?.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Profit Rate:</span>
+              <span class="value text-up">{{ (selectedOpportunity.profit_rate * 100)?.toFixed(4) }}%</span>
+            </div>
+            <div class="detail-item">
+              <span class="label">Score:</span>
+              <span class="value score">{{ selectedOpportunity.score?.toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="detailsVisible = false">Close</el-button>
+        <el-button type="primary" @click="exportOpportunity">
+          <el-icon><Download /></el-icon>
+          Export
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -108,7 +215,8 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { api } from '@/api'
-import { Activity, DollarSign, TrendingUp } from 'lucide-vue-next'
+import { Activity, DollarSign, TrendingUp, View, Download, Document } from 'lucide-vue-next'
+import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
 const chartRef = ref(null)
@@ -121,6 +229,8 @@ const totalOpportunities = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const dailyStats = ref([])
+const detailsVisible = ref(false)
+const selectedOpportunity = ref(null)
 
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
@@ -183,6 +293,58 @@ const fetchTableData = async () => {
 const handlePageChange = (page) => {
   currentPage.value = page
   fetchTableData()
+}
+
+const formatTime = (timeStr) => {
+  const date = new Date(timeStr)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+}
+
+const getStrategyClass = (direction) => {
+  return direction === 0 ? 'strategy-u2b' : 'strategy-b2u'
+}
+
+const showDetails = (row) => {
+  selectedOpportunity.value = row
+  detailsVisible.value = true
+}
+
+const exportOpportunity = () => {
+  if (!selectedOpportunity.value) return
+  
+  const data = [
+    ['Field', 'Value'],
+    ['Trade ID', selectedOpportunity.value.trade_id],
+    ['Time', formatTime(selectedOpportunity.value.time)],
+    ['Strategy', selectedOpportunity.value.strategy],
+    ['Direction', selectedOpportunity.value.direction === 0 ? 'Uniswap → Binance' : 'Binance → Uniswap'],
+    ['Binance Price', `$${selectedOpportunity.value.binance_price?.toFixed(2)}`],
+    ['Uniswap Price', `$${selectedOpportunity.value.uniswap_price?.toFixed(2)}`],
+    ['Price Difference', `$${selectedOpportunity.value.price_diff?.toFixed(2)}`],
+    ['Price Diff %', `${selectedOpportunity.value.price_diff_percent?.toFixed(2)}%`],
+    ['ETH Volume', `${selectedOpportunity.value.eth_volume_uniswap?.toFixed(4)} ETH`],
+    ['Potential Profit', `$${selectedOpportunity.value.potential_profit_usdt?.toFixed(2)}`],
+    ['Profit Rate', `${(selectedOpportunity.value.profit_rate * 100)?.toFixed(4)}%`],
+    ['Score', selectedOpportunity.value.score?.toFixed(2)]
+  ]
+  
+  const csv = data.map(row => row.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `arbitrage_opportunity_${selectedOpportunity.value.trade_id}.csv`
+  a.click()
+  window.URL.revokeObjectURL(url)
+  
+  ElMessage.success('Opportunity data exported successfully!')
 }
 
 const updateChart = () => {
@@ -343,7 +505,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .chart-card {
@@ -361,7 +523,8 @@ onMounted(() => {
   overflow: hidden;
   
   .card-header {
-    padding: var(--spacing-lg) var(--spacing-lg) 0;
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
   }
 }
 
@@ -373,6 +536,36 @@ onMounted(() => {
   font-weight: 500;
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
+}
+
+.strategy-u2b {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.strategy-b2u {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+}
+
+.trade-id-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.details-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
 }
 
 .pagination-container {
@@ -409,5 +602,116 @@ onMounted(() => {
 :deep(.el-pagination.is-background .el-pager li:not(.is-disabled).is-active) {
   background-color: var(--color-text-primary);
   color: white;
+}
+
+/* 详情模态框样式 */
+:deep(.details-dialog) {
+  .el-dialog__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    margin: 0;
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .el-dialog__title {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .el-dialog__close {
+    color: white;
+    font-size: 20px;
+    
+    &:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+  
+  .el-dialog__body {
+    padding: 24px;
+  }
+  
+  .el-dialog__footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.details-content {
+  .detail-section {
+    margin-bottom: 24px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--color-bg-tertiary);
+    }
+    
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      
+      &.highlight {
+        grid-column: 1 / -1;
+        padding: 16px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-radius: 8px;
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        
+        .value {
+          font-size: 24px;
+        }
+      }
+      
+      .label {
+        font-size: 12px;
+        color: var(--color-text-tertiary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .value {
+        font-size: 14px;
+        color: var(--color-text-primary);
+        font-weight: 600;
+        
+        &.price {
+          font-family: 'Monaco', 'Courier New', monospace;
+          font-size: 16px;
+        }
+        
+        &.profit {
+          font-family: 'Monaco', 'Courier New', monospace;
+          color: #10B981;
+          font-weight: 700;
+        }
+        
+        &.score {
+          font-family: 'Monaco', 'Courier New', monospace;
+          color: #667eea;
+        }
+      }
+    }
+  }
 }
 </style>

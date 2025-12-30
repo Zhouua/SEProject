@@ -30,13 +30,24 @@ class UniswapDataBase(BaseModel):
 class ArbitrageDataBase(BaseModel):
     id: Optional[int] = Field(None, description="记录ID")
     time_align: datetime = Field(..., description="时间戳")
-    binance_id: int = Field(..., description="关联Binance数据ID")
-    uniswap_id: int = Field(..., description="关联Uniswap数据ID")
+    trade_id: int = Field(..., description="关联交易数据ID")
     arbitrage_profit: Optional[float] = Field(None, description="套利利润（USDT）")
     profit_rate: Optional[float] = Field(None, description="利润率")
     score: Optional[float] = Field(None, description="多因子评分")
     direction: Optional[int] = Field(None, description="套利方向（0=U2B, 1=B2U）")
-    is_arbitrage_opportunity: bool = Field(False, description="是否为套利机会")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TradeDataBase(BaseModel):
+    id: Optional[int] = Field(None, description="记录ID")
+    time_align: datetime = Field(..., description="时间戳")
+    binance_price: float = Field(..., description="Binance价格（USDT）")
+    binance_vol: float = Field(..., description="Binance交易量")
+    uniswap_price: float = Field(..., description="Uniswap价格（USDT）")
+    uniswap_vol: float = Field(..., description="Uniswap交易量")
+    is_arbitrage_opportunity: bool = Field(..., description="是否为套利机会")
+    score: Optional[float] = Field(None, description="多因子评分")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -79,6 +90,7 @@ class LatestPriceResponse(BaseModel):
 # ======= 套利相关模型 =======
 
 class ArbitrageOpportunityItem(BaseModel):
+    trade_id: int = Field(..., description="交易数据ID")
     time: str = Field(..., description="时间戳（ISO格式）")
     binance_price: float = Field(..., description="Binance价格")
     uniswap_price: float = Field(..., description="Uniswap价格")

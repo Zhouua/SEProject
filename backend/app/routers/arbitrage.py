@@ -7,7 +7,7 @@ from typing import Optional
 from datetime import datetime
 
 from ..database import get_db
-from ..models import BinanceData, UniswapData, ArbitrageData
+from ..models import BinanceData, UniswapData, ArbitrageData, TradeData
 from ..schemas import (
     ArbitrageOpportunitiesResponse,
     ArbitrageOpportunityItem,
@@ -37,14 +37,12 @@ async def get_arbitrage_opportunities(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    查询满足条件的套利机会 (表 arbitrage_data)
-    并关联对应 binance_data 和 uniswap_data 显示价格和交易量
+    查询满足条件的套利机会 (arbitrage_data 表)
+    通过 trade_id 关联 trade_data 表获取价格和交易量
     """
     query = (
-        select(ArbitrageData, BinanceData, UniswapData)
-        .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
-        .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
-        .where(ArbitrageData.is_arbitrage_opportunity == True)
+        select(ArbitrageData, TradeData)
+        .join(TradeData, ArbitrageData.trade_id == TradeData.id)
     )
     if start_time:
         query = query.where(ArbitrageData.time_align >= start_time)
@@ -74,19 +72,20 @@ async def get_arbitrage_opportunities(
 
     data = [
         ArbitrageOpportunityItem(
+            trade_id=arb.trade_id,
             time=arb.time_align.isoformat(),
-            binance_price=round(bn.price, 2),
-            uniswap_price=round(uni.price, 2),
-            price_diff=round(bn.price - uni.price, 2),
-            price_diff_percent=round((bn.price - uni.price) / uni.price * 100, 4) if uni.price != 0 else 0,
-            eth_volume_uniswap=round(uni.eth_vol, 4),
+            binance_price=round(trade.binance_price, 2),
+            uniswap_price=round(trade.uniswap_price, 2),
+            price_diff=round(trade.binance_price - trade.uniswap_price, 2),
+            price_diff_percent=round((trade.binance_price - trade.uniswap_price) / trade.uniswap_price * 100, 4) if trade.uniswap_price != 0 else 0,
+            eth_volume_uniswap=round(trade.uniswap_vol, 4),
             potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
             profit_rate=round(arb.profit_rate or 0, 6),
             score=round(arb.score or 0, 2),
             direction=arb.direction or 0,
             strategy=get_strategy_description(arb.direction or 0)
         )
-        for arb, bn, uni in records
+        for arb, trade in records
     ]
 
     return ArbitrageOpportunitiesResponse(
@@ -111,10 +110,8 @@ async def get_top_arbitrage_opportunities(
     - score: 按评分排序
     """
     query = (
-        select(ArbitrageData, BinanceData, UniswapData)
-        .join(BinanceData, ArbitrageData.binance_id == BinanceData.id)
-        .join(UniswapData, ArbitrageData.uniswap_id == UniswapData.id)
-        .where(ArbitrageData.is_arbitrage_opportunity == True)
+        select(ArbitrageData, TradeData)
+        .join(TradeData, ArbitrageData.trade_id == TradeData.id)
     )
     
     # 根据sort_by参数选择排序字段
@@ -133,16 +130,16 @@ async def get_top_arbitrage_opportunities(
         TopArbitrageItem(
             rank=idx + 1,
             time=arb.time_align.isoformat(),
-            binance_price=round(bn.price, 2),
-            uniswap_price=round(uni.price, 2),
-            price_diff=round(bn.price - uni.price, 2),
-            eth_volume=round(uni.eth_vol, 4),
+            binance_price=round(trade.binance_price, 2),
+            uniswap_price=round(trade.uniswap_price, 2),
+            price_diff=round(trade.binance_price - trade.uniswap_price, 2),
+            eth_volume=round(trade.uniswap_vol, 4),
             potential_profit_usdt=round(arb.arbitrage_profit or 0, 2),
             profit_rate=round(arb.profit_rate or 0, 6),
             score=round(arb.score or 0, 2),
             direction=arb.direction or 0
         )
-        for idx, (arb, bn, uni) in enumerate(records)
+        for idx, (arb, trade) in enumerate(records)
     ]
 
     return TopArbitrageResponse(
@@ -166,7 +163,6 @@ async def get_daily_arbitrage_stats(
             func.sum(ArbitrageData.arbitrage_profit).label("total_profit"),
             func.count(ArbitrageData.id).label("count")
         )
-        .where(ArbitrageData.is_arbitrage_opportunity == True)
         .group_by(cast(ArbitrageData.time_align, Date))
         .order_by(cast(ArbitrageData.time_align, Date))
     )

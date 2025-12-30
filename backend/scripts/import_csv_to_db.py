@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 from sqlalchemy import select
 from app.database import AsyncSessionLocal, create_tables
-from app.models import BinanceData, UniswapData, ArbitrageData
+from app.models import BinanceData, UniswapData, ArbitrageData, TradeData
 from datetime import datetime
 from tqdm import tqdm
 
@@ -145,8 +145,9 @@ async def import_csv_data():
         # 检查数据是否已经导入
         bn_exist = (await session.execute(select(BinanceData).limit(1))).scalar_one_or_none()
         uni_exist = (await session.execute(select(UniswapData).limit(1))).scalar_one_or_none()
+        trade_exist = (await session.execute(select(TradeData).limit(1))).scalar_one_or_none()
         arb_exist = (await session.execute(select(ArbitrageData).limit(1))).scalar_one_or_none()
-        if bn_exist or uni_exist or arb_exist:
+        if bn_exist or uni_exist or trade_exist or arb_exist:
             print("⚠️  数据库已有数据，跳过导入")
             return
 
@@ -157,6 +158,7 @@ async def import_csv_data():
 
         binance_list = []
         uniswap_list = []
+        trade_list = []
         arbitrage_list = []
 
         print("🚀 开始导入数据...\n")
@@ -186,53 +188,66 @@ async def import_csv_data():
                 is_arbitrage, arbitrage_profit, profit_rate, score, direction = calculate_arbitrage_profit_bidirectional(
                     row['price_b'], row['price_u'], row['eth_vol_u'], row['eth_vol_b']
                 )
+                
+                # 创建 trade_data 记录（所有交易对都存储score）
+                trade = TradeData(
+                    time_align=time_align,
+                    binance_price=row['price_b'],
+                    binance_vol=row['eth_vol_b'],
+                    uniswap_price=row['price_u'],
+                    uniswap_vol=row['eth_vol_u'],
+                    is_arbitrage_opportunity=is_arbitrage,
+                    score=score  # 所有记录都存储score
+                )
+                trade_list.append(trade)
+                
                 if is_arbitrage:
                     arbitrage_count += 1
                     direction_stats[direction] += 1
 
                 if (idx + 1) % batch_size == 0 or (idx + 1) == len(df):
+                    # 插入 binance、uniswap 和 trade 数据
                     session.add_all(binance_list)
                     session.add_all(uniswap_list)
+                    session.add_all(trade_list)
                     await session.commit()
 
+                    # 获取当前批次的时间戳
                     times = [datetime.strptime(t, '%Y-%m-%d %H:%M') if isinstance(t, str) else t 
                             for t in df.loc[idx+1-len(binance_list):idx, 'time_align']]
 
-                    inserted_binance = {}
-                    inserted_uniswap = {}
+                    # 查询已插入的 trade_data（用于 arbitrage_data）
+                    result_trade = await session.execute(select(TradeData).where(TradeData.time_align.in_(times)))
+                    inserted_trade = {}
+                    for item in result_trade.scalars():
+                        inserted_trade[item.time_align] = item
 
-                    result_bn = await session.execute(select(BinanceData).where(BinanceData.time_align.in_(times)))
-                    for item in result_bn.scalars():
-                        inserted_binance[item.time_align] = item
-
-                    result_uni = await session.execute(select(UniswapData).where(UniswapData.time_align.in_(times)))
-                    for item in result_uni.scalars():
-                        inserted_uniswap[item.time_align] = item
-
-                    for b_time in inserted_binance:
-                        bn_obj = inserted_binance[b_time]
-                        uni_obj = inserted_uniswap.get(b_time)
-                        if not uni_obj:
+                    # 只为套利机会创建 arbitrage_data
+                    for t_time in inserted_trade:
+                        trade_obj = inserted_trade[t_time]
+                        
+                        # 只处理套利机会
+                        if not trade_obj.is_arbitrage_opportunity:
                             continue
                         
-                        row_idx = times.index(b_time)
+                        row_idx = times.index(t_time)
                         row_data = df.iloc[idx+1-len(binance_list)+row_idx]
 
                         is_arbitrage, arbitrage_profit, profit_rate, score, direction = calculate_arbitrage_profit_bidirectional(
                             row_data['price_b'], row_data['price_u'], row_data['eth_vol_u'], row_data['eth_vol_b']
                         )
                         
-                        arbitrage = ArbitrageData(
-                            time_align=b_time,
-                            binance_id=bn_obj.id,
-                            uniswap_id=uni_obj.id,
-                            arbitrage_profit=arbitrage_profit,
-                            profit_rate=profit_rate,
-                            score=score,
-                            direction=direction,
-                            is_arbitrage_opportunity=is_arbitrage
-                        )
-                        arbitrage_list.append(arbitrage)
+                        # 创建 arbitrage_data 记录
+                        if is_arbitrage:
+                            arbitrage = ArbitrageData(
+                                time_align=t_time,
+                                trade_id=trade_obj.id,
+                                arbitrage_profit=arbitrage_profit,
+                                profit_rate=profit_rate,
+                                score=score,
+                                direction=direction
+                            )
+                            arbitrage_list.append(arbitrage)
 
                     session.add_all(arbitrage_list)
                     await session.commit()
@@ -242,6 +257,7 @@ async def import_csv_data():
 
                     binance_list.clear()
                     uniswap_list.clear()
+                    trade_list.clear()
                     arbitrage_list.clear()
 
         print("\n" + "=" * 60)
