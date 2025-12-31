@@ -21,9 +21,9 @@ LIQUIDITY_ESTIMATE = 1_000_000  # 流动性估计值
 
 # 多因子评分权重
 WEIGHTS = {
-    "price_diff": 0.4,
+    "price_diff": 0.8,
     "volume": 0.3,
-    "liquidity": 0.2,
+    "liquidity": 0.0,
     "gas_fee": -0.1  # 负权重
 }
 
@@ -66,7 +66,7 @@ def calculate_multifactor_score(price_b, apamm_price, eth_vol_u, eth_vol_b):
         WEIGHTS["liquidity"] * liquidity_normalized +
         WEIGHTS["gas_fee"] * gas_fee  # 权重已经是负的
     )
-    
+    score = score / 40  # 归一化处理
     return score
 
 
