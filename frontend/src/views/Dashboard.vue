@@ -1,8 +1,13 @@
 <template>
   <div class="dashboard">
-    <!-- <Transition name="fade">
-      <TruckLoader v-if="loading" :show="true" text="加载数据中..." key="dashboard-loader" />
-    </Transition> -->
+    <Transition name="fade">
+      <TruckLoader 
+        v-if="loading" 
+        :show="true" 
+        text="加载数据中..." 
+        class="full-screen-loader"
+      />
+    </Transition>
     <div class="dashboard-layout">
       <!-- 左侧栏 -->
       <div class="left-panel">
@@ -657,11 +662,38 @@ const handleExportStatsCSV = () => {
 
 <style lang="scss" scoped>
 .dashboard {
+  position: relative;
+  min-height: 100vh; /* 给一个最小高度防止加载时塌陷 */
   width: 100%;
-  margin-top: -8px; // 微调，与侧边栏 Data Overview 按钮顶部对齐
+  margin-top: -8px; 
   padding: 0 24px 24px 20px;
   animation: fadeInDashboard 0.8s ease-out;
   position: relative;
+  box-sizing: border-box;
+}
+
+.full-screen-loader {
+  position: absolute; 
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999; 
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 @keyframes fadeInDashboard {
