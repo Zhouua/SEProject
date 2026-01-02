@@ -74,7 +74,7 @@
         <!-- 最大价差记录 -->
         <div class="top-movers">
           <div class="section-header">
-            <h3 class="section-title">Top Arbitrage Opportunities</h3>
+            <h3 class="section-title">{{ t('dashboard.topArbitrageOpportunities') }}</h3>
           </div>
           <div class="compact-table">
             <div class="table-header">
@@ -161,7 +161,7 @@
         <!-- 套利机会监控 -->
         <div class="watchlist">
           <div class="section-header">
-            <h3 class="section-title">Recent Arbitrage Opportunities</h3>
+            <h3 class="section-title">{{ t('dashboard.recentArbitrageOp') }}</h3>
           </div>
           
           <div class="compact-table">
