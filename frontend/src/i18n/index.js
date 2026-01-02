@@ -4,10 +4,28 @@ const messages = {
   zh: {
     common: {
       startDate: '开始日期',
-      endDate: '结束日期'
+      endDate: '结束日期',
+      loadingData: '加载数据中...' // 新增：通用加载文案
     },
     chart: {
-      candlestickInfo: 'K线图与成交量指标'
+      candlestickInfo: 'K线图与成交量指标',
+      // --- 新增 K 线页面所需字段 ---
+      showBoth: '全部显示',
+      onlyPrice: '仅价格',
+      onlyVolume: '仅成交量',
+      arbitrageAnalysis: '套利机会分析 (Arbitrage Analysis)',
+      selectedTime: '选中时间',
+      exchange: '交易所 (Exchange)',
+      open: '开盘价 (Open)',
+      close: '收盘价 (Close)',
+      high: '最高价 (High)',
+      low: '最低价 (Low)',
+      change: '涨跌幅 (Change)',
+      potentialArbitrage: '潜在套利空间',
+      priceSpread: '收盘价差',
+      clickHint: '请点击图表中的 K 线，查看该时点的比较数据',
+      binanceVol: 'Binance 成交量',
+      uniswapVol: 'Uniswap 成交量'
     },
     header: {
       search: '搜索交易对、数据或分析...',
@@ -195,10 +213,28 @@ const messages = {
   en: {
     common: {
       startDate: 'Start Date',
-      endDate: 'End Date'
+      endDate: 'End Date',
+      loadingData: 'Loading Data...' // 新增：通用加载文案
     },
     chart: {
-      candlestickInfo: 'Candlestick chart with volume indicators'
+      candlestickInfo: 'Candlestick chart with volume indicators',
+      // --- 新增 K 线页面所需字段 ---
+      showBoth: 'Show All',
+      onlyPrice: 'Price Only',
+      onlyVolume: 'Volume Only',
+      arbitrageAnalysis: 'Arbitrage Analysis',
+      selectedTime: 'Selected Time',
+      exchange: 'Exchange',
+      open: 'Open',
+      close: 'Close',
+      high: 'High',
+      low: 'Low',
+      change: 'Change',
+      potentialArbitrage: 'Potential Arbitrage',
+      priceSpread: 'Price Spread',
+      clickHint: 'Click on a candlestick to view detailed comparison data',
+      binanceVol: 'Binance Vol',
+      uniswapVol: 'Uniswap Vol'
     },
     header: {
       search: 'Search pairs, data, or analysis...',
@@ -248,7 +284,23 @@ const messages = {
       watchlist: 'Arbitrage Opportunities',
       actions: 'Actions',
       priceDiff: 'Price Diff',
-      arbitrageProfit: 'Arbitrage Profit (USDT)'
+      arbitrageProfit: 'Arbitrage Profit (USDT)',
+      exportDialog: {
+        title: 'Export Report',
+        selectType: 'Select Export Type:',
+        pdfReport: 'PDF Report',
+        pdfDesc: 'Export all Dashboard charts as a PDF file',
+        csvData: 'CSV Data',
+        arbitrageCSV: 'Arbitrage CSV',
+        arbitrageDesc: 'Export all arbitrage opportunity data',
+        priceCSV: 'Price Data CSV',
+        priceDesc: 'Export all historical price data',
+        allDataCSV: 'Full Data CSV',
+        allDataDesc: 'Export complete data (Price + Arbitrage)',
+        statsCSV: 'Statistics CSV',
+        statsDesc: 'Export statistical overview',
+        close: 'Close'
+      }
     },
     notification: {
       title: 'Notification Center',
