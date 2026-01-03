@@ -210,7 +210,7 @@ const navigateToDashboard = () => {
 .welcome-page {
   flex: 1;
   width: 100%;
-  background-image: url('@/assets/phone-hand.png');
+  background-image: url('@/assets/phone-hand-new.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

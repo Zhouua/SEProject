@@ -1,137 +1,160 @@
 <template>
   <div class="page-container">
-    <TruckLoader :show="loading" text="加载价格数据中..." />
+    <TruckLoader :show="loading" text="Loading Market Data..." />
     
-    <div class="main-layout">
-      <div class="left-content">
-        <div class="card chart-card full-height-card">
-          <div class="chart-info-bar">
-            <div class="view-controls">
-              <el-radio-group v-model="viewMode" size="small" @change="updateChartDisplay">
-                <el-radio-button label="both">{{ t('chart.showBoth') }}</el-radio-button>
-                <el-radio-button label="candle">{{ t('chart.onlyPrice') }}</el-radio-button>
-                <el-radio-button label="volume">{{ t('chart.onlyVolume') }}</el-radio-button>
-              </el-radio-group>
-            </div>
-            
-            <div class="chart-description">
-              <span class="desc-text">{{ t('chart.candlestickInfo') }}</span>
-            </div>
+    <!-- Ticker Header -->
+    <div class="ticker-header card">
+      <div class="asset-info">
+        <div class="asset-icon">
+          <img :src="headerInfo.logo" :alt="headerInfo.name" />
+        </div>
+        <div class="asset-names">
+          <div class="asset-symbol">{{ headerInfo.symbol }}</div>
+          <div class="asset-name">{{ headerInfo.name }}</div>
+        </div>
+      </div>
+      
+      <div class="ticker-stats">
+        
+        <!-- Binance Stat -->
+        <div class="stat-card" v-if="exchangeFilter !== 'uniswap'">
+          <div class="stat-label">Binance Price</div>
+          <div class="stat-value text-binance">
+            ${{ formatPrice(latestData?.binance?.close) }}
+            <span class="change-badge" :class="getChange(latestData?.binance) >= 0 ? 'bg-green' : 'bg-red'">
+               {{ getChange(latestData?.binance) }}%
+            </span>
           </div>
+        </div>
 
-          <div ref="chartRef" :style="{ width: '100%', height: viewMode === 'both' ? '500px' : '450px' }"></div>
+        <!-- Uniswap Stat -->
+        <div class="stat-card" v-if="exchangeFilter !== 'binance'">
+          <div class="stat-label">Uniswap Price</div>
+          <div class="stat-value text-uniswap">
+            ${{ formatPrice(latestData?.uniswap?.close) }}
+            <span class="change-badge" :class="getChange(latestData?.uniswap) >= 0 ? 'bg-green' : 'bg-red'">
+               {{ getChange(latestData?.uniswap) }}%
+            </span>
+          </div>
+        </div>
 
-          <div class="terminal-panel">
-            <div class="panel-header">
-              <div class="tabs">
-                <div class="tab-item active">{{ t('chart.arbitrageAnalysis') }}</div>
-              </div>
-              <div class="account-summary" v-if="selectedData">
-                <span class="label">{{ t('chart.selectedTime') }}:</span>
-                <span class="value">{{ selectedData.time }}</span>
-              </div>
-            </div>
+        <!-- Spread / Arb Signal -->
+        <div class="stat-card highlight" v-if="exchangeFilter === 'both'">
+          <div class="stat-label">Arbitrage Spread</div>
+          <div class="stat-main">
+             <span class="spread-percent" :class="latestSpreadPercent > 0.5 ? 'text-up' : 'text-neutral'">
+                {{ latestSpreadPercent }}%
+             </span>
+             <span class="spread-value">(${{ formatPrice(Math.abs(latestSpread)) }})</span>
+          </div>
+          <div class="arb-signal" v-if="Math.abs(latestSpreadPercent) > 0.1">
+             <span class="signal-tag">{{ arbDirection }}</span>
+          </div>
+        </div>
 
-            <div class="panel-body">
-              <table class="terminal-table" v-if="selectedData">
-                <thead>
-                  <tr>
-                    <th>{{ t('chart.exchange') }}</th>
-                    <th>{{ t('chart.open') }}</th>
-                    <th>{{ t('chart.close') }}</th>
-                    <th>{{ t('chart.high') }}</th>
-                    <th>{{ t('chart.low') }}</th>
-                    <th>{{ t('chart.change') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><span class="dot binance-dot"></span> Binance (CEX)</td>
-                    <td>${{ selectedData.binance.open }}</td>
-                    <td>${{ selectedData.binance.close }}</td>
-                    <td>${{ selectedData.binance.high }}</td>
-                    <td>${{ selectedData.binance.low }}</td>
-                    <td :class="getPriceClass(selectedData.binance)">{{ getPriceChange(selectedData.binance) }}%</td>
-                  </tr>
-                  <tr>
-                    <td><span class="dot uniswap-dot"></span> Uniswap V3 (DEX)</td>
-                    <td>${{ selectedData.uniswap.open }}</td>
-                    <td>${{ selectedData.uniswap.close }}</td>
-                    <td>${{ selectedData.uniswap.high }}</td>
-                    <td>${{ selectedData.uniswap.low }}</td>
-                    <td :class="getPriceClass(selectedData.uniswap)">{{ getPriceChange(selectedData.uniswap) }}%</td>
-                  </tr>
-                  <tr class="highlight-row">
-                    <td><strong>💰 {{ t('chart.potentialArbitrage') }}</strong></td>
-                    <td colspan="4" class="spread-info">
-                      {{ t('chart.priceSpread') }}: <strong>${{ Math.abs(selectedData.binance.close - selectedData.uniswap.close).toFixed(4) }}</strong>
-                    </td>
-                    <td class="profit-value">
-                      {{ (Math.abs(1 - selectedData.binance.close / selectedData.uniswap.close) * 100).toFixed(4) }}%
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="empty-state" v-else>
-                <el-icon><Pointer /></el-icon>
-                <p>{{ t('chart.clickHint') }}</p>
+        <!-- Volume -->
+        <div class="stat-card">
+          <div class="stat-label">24h Volume (USDT)</div>
+          <div class="stat-value">{{ formatVolume(latestData?.binance?.usdt_volume) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-layout">
+      <!-- Left: Chart Section -->
+      <div class="left-section">
+        <div class="card chart-card">
+          <div class="chart-header">
+             <div class="chart-tabs">
+               <div class="tab-item active">Price Chart</div>
+               <div class="tab-item">Depth</div>
+             </div>
+             
+             <div class="time-controls">
+                <span 
+                  v-for="t in ['1H', '4H', '1D', '1W']" 
+                  :key="t"
+                  class="time-btn" 
+                  :class="{ active: interval === t.toLowerCase() }"
+                  @click="changeInterval(t.toLowerCase())"
+                >
+                  {{ t }}
+                </span>
+             </div>
+          </div>
+          
+          <div class="chart-container">
+             <div ref="chartRef" style="width: 100%; height: 500px;"></div>
+          </div>
+          
+          <div class="chart-controls-footer">
+             <el-radio-group v-model="exchangeFilter" size="small" @change="updateChart">
+                <el-radio-button label="binance">Binance</el-radio-button>
+                <el-radio-button label="uniswap">Uniswap</el-radio-button>
+                <el-radio-button label="both">Compare Both</el-radio-button>
+              </el-radio-group>
+              
+              <div class="nav-controls">
+                 <el-button link :icon="ArrowLeft" @click="navigateDays(-7)" :disabled="currentStartIndex <= 0" />
+                 <span class="date-range">{{ displayDateRange }}</span>
+                 <el-button link :icon="ArrowRight" @click="navigateDays(7)" :disabled="currentStartIndex + windowSize >= allRawData.length" />
               </div>
-            </div>
           </div>
         </div>
       </div>
 
-      <div class="right-sidebar">
-        <div class="card sidebar-card full-height-card">
-          <div class="sidebar-section">
-            <div class="sidebar-header">
-              <h3 class="sidebar-title">{{ t('dashboard.watchlist') }}</h3>
-              <span class="more-link" @click="$router.push('/arbitrage-history')">{{ t('dashboard.more') }}</span>
-            </div>
-            <div class="asset-list scrollbar-custom">
-              <div v-for="(item, index) in watchlist" :key="'recent-'+index" class="asset-item" @click="handleWatchlistItemClick(item)">
-                <div class="asset-main">
-                  <img :src="item.icon" class="asset-logo" />
-                  <div class="asset-meta">
-                    <span class="pair-name">{{ item.symbol }}</span>
-                    <span class="strategy-tag">{{ item.time.split(' ')[1] }}</span>
-                  </div>
-                </div>
-                <div class="asset-stats">
-                  <div class="current-price text-up">+${{ item.price }}</div>
-                  <div class="profit-tag">{{ t('chart.priceSpread') }}: ${{ item.change }}</div>
-                </div>
-              </div>
-            </div>
+      <!-- Right: Order Book -->
+      <div class="right-section">
+        <div class="card order-book-card">
+          <div class="card-header">
+            <h3 class="title">Order Book</h3>
           </div>
-
-          <el-divider />
-
-          <div class="sidebar-section">
-            <div class="sidebar-header">
-              <h3 class="sidebar-title">{{ t('dashboard.topMovers') || 'Top Movers' }}</h3>
-            </div>
-            <div class="asset-list">
-              <div v-for="(item, index) in topMovers" :key="'mover-'+index" class="asset-item">
-                <div class="asset-main">
-                  <div class="asset-icon" :class="'rank-' + (index + 1)">{{ index + 1 }}</div>
-                  <div class="asset-meta">
-                    <span class="pair-name">{{ item.symbol }}</span>
-                    <span class="strategy-tag">{{ t('chart.maxProfit') || 'Max Profit' }}</span>
-                  </div>
-                </div>
-                <div class="asset-stats">
-                  <div class="current-price">${{ item.price }}</div>
-                  <div class="profit-tag text-up">+{{ item.change }}%</div>
-                </div>
-              </div>
-            </div>
+          
+          <div class="order-book-header">
+            <div class="col">Price(USDT)</div>
+            <div class="col text-right">Vol(USDT)</div>
+            <div class="col text-right">Spread</div>
           </div>
-
-          <div class="sidebar-footer">
-            <button class="btn btn-secondary" @click="refreshAllData">
-              <el-icon><Refresh /></el-icon> {{ t('common.refresh') }}
-            </button>
+          
+          <div class="order-book-list" ref="orderBookRef">
+             <div 
+               v-for="(item, index) in getCurrentWindowData" 
+               :key="index"
+               class="order-row"
+               :class="{ 'selected': selectedData && selectedData.time === item.time }"
+               @click="selectRow(item)"
+               :id="'row-' + item.time.replace(/[: ]/g, '-')"
+             >
+                <div class="col price-col" :class="item.binance.close >= item.binance.open ? 'text-up' : 'text-down'">
+                  {{ formatPrice(item.binance.close) }}
+                </div>
+                <div class="col text-right vol-col">
+                  {{ formatVolumeShort(item.binance.usdt_volume) }}
+                </div>
+                <div class="col text-right spread-col">
+                  {{ (Math.abs(item.binance.close - item.uniswap.close)).toFixed(2) }}
+                </div>
+             </div>
+          </div>
+          
+          <div class="order-stats" v-if="selectedData">
+             <div class="stat-row">
+                <span>Selected Time</span>
+                <span class="mono">{{ formatTime(selectedData.time) }}</span>
+             </div>
+             <div class="stat-divider"></div>
+             <div class="stat-row" v-if="exchangeFilter !== 'uniswap'">
+                <span>Binance</span>
+                <span class="mono">${{ formatPrice(selectedData.binance.close) }}</span>
+             </div>
+             <div class="stat-row" v-if="exchangeFilter !== 'binance'">
+                <span>Uniswap</span>
+                <span class="mono contrast">${{ formatPrice(selectedData.uniswap.close) }}</span>
+             </div>
+             <div class="arb-opportunity" v-if="exchangeFilter === 'both' && Math.abs(selectedData.binance.close - selectedData.uniswap.close) > 10">
+                Arbitrage Opportunity Detected
+             </div>
           </div>
         </div>
       </div>
@@ -140,31 +163,86 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch, onUnmounted } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, onMounted, nextTick, watch, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
-import { Pointer, Refresh } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { api } from '@/api'
 import TruckLoader from '@/components/TruckLoader.vue'
 
-const { t, locale } = useI18n()
 const chartRef = ref(null)
+const orderBookRef = ref(null)
 let chart = null
 
 const loading = ref(false)
-const viewMode = ref('both')
+const exchangeFilter = ref('both')
 const selectedData = ref(null)
-const watchlist = ref([])
-const topMovers = ref([])
 let allRawData = []
-let refreshTimer = null
-
-const dateRange = ref(['2025-09-01 00:00:00', '2025-09-30 23:59:59'])
 const interval = ref('4h')
 
-// 监听语言切换，刷新图表图例标签
-watch(locale, () => { 
-  if (allRawData.length) updateChart(allRawData) 
+const currentStartIndex = ref(0)
+const windowSize = computed(() => Math.ceil(7 * 24 / 4)) // Approx 7 days
+
+// Header Info Computed
+const headerInfo = computed(() => {
+  if (exchangeFilter.value === 'binance') {
+    return {
+      symbol: 'BNB/USDT',
+      name: 'Binance Data',
+      logo: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png'
+    }
+  } else if (exchangeFilter.value === 'uniswap') {
+    return {
+      symbol: 'UNI/USDT',
+      name: 'Uniswap Data',
+      logo: 'https://cryptologos.cc/logos/uniswap-uni-logo.png'
+    }
+  } else {
+    return {
+      symbol: 'BTC/USDT',
+      name: 'Bitcoin (Comparison)',
+      logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png'
+    }
+  }
+})
+
+const latestData = computed(() => allRawData[allRawData.length - 1] || {})
+const latestSpread = computed(() => {
+    if(!latestData.value.binance) return 0
+    return latestData.value.binance.close - latestData.value.uniswap.close
+})
+const latestSpreadPercent = computed(() => {
+    if(!latestData.value.binance) return '0.00'
+    return Math.abs(((latestSpread.value / latestData.value.binance.close) * 100)).toFixed(2)
+})
+
+const arbDirection = computed(() => {
+    if (latestSpread.value > 0) {
+        return "Buy Uniswap → Sell Binance" // Binance is higher, so buy low (Uni) sell high (Bin)
+    } else {
+        return "Buy Binance → Sell Uniswap" // Uniswap is higher
+    }
+})
+
+const getChange = (candle) => {
+    if(!candle) return '0.00'
+    // Simple calc: (Close - Open) / Open
+    return ((candle.close - candle.open) / candle.open * 100).toFixed(2)
+}
+
+const displayDateRange = computed(() => {
+  if (!allRawData.length) return '-'
+  const startIdx = currentStartIndex.value
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length) - 1
+  if (endIdx < 0) return '-'
+  const startDate = allRawData[startIdx]?.time?.split(' ')[0] || '-'
+  const endDate = allRawData[endIdx]?.time?.split(' ')[0] || '-'
+  return `${startDate} ~ ${endDate}`
+})
+
+const getCurrentWindowData = computed(() => {
+  const startIdx = currentStartIndex.value
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
+  return allRawData.slice(startIdx, endIdx).reverse()
 })
 
 const initChart = () => {
@@ -172,238 +250,344 @@ const initChart = () => {
     chart = echarts.init(chartRef.value)
     window.addEventListener('resize', () => chart.resize())
     chart.on('click', (params) => {
-      const index = params.dataIndex
-      if (allRawData[index]) selectedData.value = allRawData[index]
+      const startIdx = currentStartIndex.value
+      const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
+      const windowData = allRawData.slice(startIdx, endIdx)
+      
+      const clickedItem = windowData[params.dataIndex]
+      if (clickedItem) {
+        selectRow(clickedItem)
+        nextTick(() => {
+           const id = 'row-' + clickedItem.time.replace(/[: ]/g, '-')
+           const el = document.getElementById(id)
+           if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+      }
     })
   }
 }
 
-const fetchSidebarData = async () => {
-  try {
-    const [start, end] = dateRange.value
-    
-    // 1. 获取最近套利机会数据
-    const recentArb = await api.getArbitrageOpportunities(start, end, 0, 5, 0, 'time_desc')
-    watchlist.value = recentArb.data.map(item => ({
-      symbol: 'ETH-USDT',
-      price: item.potential_profit_usdt.toFixed(2),
-      change: item.price_diff.toFixed(2),
-      icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029',
-      time: item.time,
-      raw: item
-    }))
-
-    // 2. 获取收益排行
-    const topArb = await api.getTopArbitrage(5)
-    topMovers.value = topArb.map(item => ({
-      symbol: 'ETH-USDT',
-      price: item.potential_profit_usdt.toFixed(2),
-      change: ((item.price_diff / item.binance_price) * 100).toFixed(2),
-      time: item.time
-    }))
-  } catch (error) {
-    console.error('Sidebar Data Fetch Error:', error)
-  }
-}
-
 const fetchData = async () => {
-  if (!dateRange.value || dateRange.value.length !== 2) return
   loading.value = true
   try {
-    const [start, end] = dateRange.value
-    const data = await api.getPriceCandles(start, end, interval.value)
+     // Using fixed range for demo
+    const data = await api.getPriceCandles('2025-09-01 00:00:00', '2025-09-30 23:59:59', interval.value)
     allRawData = data
-    updateChart(data)
+    currentStartIndex.value = Math.max(0, allRawData.length - windowSize.value) 
+    updateChart()
   } catch (error) { 
-    console.error('Chart Data Fetch Error:', error) 
+    console.error('Data Fetch Error:', error) 
   } finally { 
     loading.value = false 
   }
 }
 
-const refreshAllData = () => {
-  fetchData()
-  fetchSidebarData()
-}
-
-const handleWatchlistItemClick = (item) => {
-  console.log('User clicked arbitrage record:', item.raw)
-}
-
-const getPriceClass = (data) => data.close >= data.open ? 'text-up' : 'text-down'
-const getPriceChange = (data) => (((data.close - data.open) / data.open) * 100).toFixed(2)
-
-const updateChartDisplay = () => { 
-  if (allRawData.length) updateChart(allRawData) 
-}
-
-const updateChart = (data) => {
-  if (!chart || !data) return
-  const dates = data.map(item => item.time)
-  const binanceData = data.map(item => [item.binance.open, item.binance.close, item.binance.low, item.binance.high])
-  const uniswapData = data.map(item => [item.uniswap.open, item.uniswap.close, item.uniswap.low, item.uniswap.high])
-  const binanceVolume = data.map(item => item.binance.usdt_volume || 0)
-  const uniswapVolume = data.map(item => item.uniswap.usdt_volume || 0)
-
-  let grid = [], xAxis = [], yAxis = [], series = []
+const updateChart = () => {
+  if (!chart || !allRawData.length) return
   
-  // 注入 i18n 标签
-  const labelBinance = 'Binance'
-  const labelUniswap = 'Uniswap'
-  const labelVolB = t('chart.binanceVol') || 'Binance Vol'
-  const labelVolU = t('chart.uniswapVol') || 'Uniswap Vol'
+  const startIdx = currentStartIndex.value
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
+  const windowData = allRawData.slice(startIdx, endIdx)
+  
+  const dates = windowData.map(item => item.time)
+  const binanceData = windowData.map(item => [item.binance.open, item.binance.close, item.binance.low, item.binance.high])
+  const uniswapData = windowData.map(item => [item.uniswap.open, item.uniswap.close, item.uniswap.low, item.uniswap.high])
 
-  if (viewMode.value === 'both') {
-    grid = [
-      { left: '4%', right: '4%', top: '8%', height: '55%', containLabel: true }, 
-      { left: '4%', right: '4%', top: '72%', height: '18%', containLabel: true }
-    ]
-    xAxis = [
-      { type: 'category', data: dates, gridIndex: 0 }, 
-      { type: 'category', data: dates, gridIndex: 1 }
-    ]
-    yAxis = [{ scale: true, gridIndex: 0 }, { scale: true, gridIndex: 1 }]
-    series = [
-      { name: labelBinance, type: 'candlestick', data: binanceData, xAxisIndex: 0, yAxisIndex: 0, itemStyle: { color: '#10B981', color0: '#EF4444' } },
-      { name: labelUniswap, type: 'candlestick', data: uniswapData, xAxisIndex: 0, yAxisIndex: 0, itemStyle: { color: '#3B82F6', color0: '#F59E0B' } },
-      { name: labelVolB, type: 'bar', data: binanceVolume, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: 'rgba(16, 185, 129, 0.3)' } },
-      { name: labelVolU, type: 'bar', data: uniswapVolume, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: 'rgba(59, 130, 246, 0.3)' } }
-    ]
-  } else {
-    grid = [{ left: '4%', right: '4%', top: '8%', height: '80%', containLabel: true }]
-    xAxis = [{ type: 'category', data: dates }]
-    yAxis = [{ scale: true }]
-    series = viewMode.value === 'candle' ? [
-      { name: labelBinance, type: 'candlestick', data: binanceData, itemStyle: { color: '#10B981', color0: '#EF4444' } },
-      { name: labelUniswap, type: 'candlestick', data: uniswapData, itemStyle: { color: '#3B82F6', color0: '#F59E0B' } }
-    ] : [
-      { name: labelVolB, type: 'bar', data: binanceVolume, itemStyle: { color: 'rgba(16, 185, 129, 0.3)' } },
-      { name: labelVolU, type: 'bar', data: uniswapVolume, itemStyle: { color: 'rgba(59, 130, 246, 0.3)' } }
-    ]
+  let series = []
+  
+  if (exchangeFilter.value === 'both' || exchangeFilter.value === 'binance') {
+      series.push({
+          name: 'Binance', type: 'candlestick', data: binanceData,
+          itemStyle: { color: '#10B981', color0: '#EF4444', borderColor: '#10B981', borderColor0: '#EF4444' }
+      })
   }
-  chart.setOption({ 
-    tooltip: { trigger: 'axis', showContent: false, axisPointer: { type: 'cross' } }, 
-    legend: { show: true, top: 0 }, 
-    grid, xAxis, yAxis, series 
+  if (exchangeFilter.value === 'both' || exchangeFilter.value === 'uniswap') {
+      series.push({
+          name: 'Uniswap', type: 'candlestick', data: uniswapData,
+          itemStyle: { color: '#3B82F6', color0: '#F59E0B', borderColor: '#3B82F6', borderColor0: '#F59E0B' }
+      })
+  }
+
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    legend: { show: true, top: 0, textStyle: { fontWeight: 'bold' } },
+    grid: { left: '3%', right: '3%', top: '10%', bottom: '10%', containLabel: true },
+    xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#E5E7EB' } }, axisLabel: { color: '#6B7280' } },
+    yAxis: { scale: true, splitLine: { lineStyle: { color: '#F3F4F6' } }, axisLabel: { color: '#6B7280' } },
+    dataZoom: [{ type: 'inside', start: 0, end: 100 }],
+    series
   }, true)
 }
+
+const navigateDays = (days) => {
+  const step = Math.ceil(days * 24 / 4)
+  let newIndex = currentStartIndex.value + step
+  newIndex = Math.max(0, Math.min(newIndex, allRawData.length - windowSize.value))
+  currentStartIndex.value = newIndex
+  updateChart()
+}
+
+const changeInterval = (newInterval) => {
+    interval.value = newInterval
+    fetchData()
+}
+
+const selectRow = (item) => {
+    selectedData.value = item
+}
+
+const formatPrice = (p) => p ? parseFloat(p).toFixed(2) : '-'
+const formatVolume = (v) => v ? parseInt(v).toLocaleString() : '-'
+const formatVolumeShort = (v) => {
+    if(!v) return '-'
+    if(v > 1000000) return (v/1000000).toFixed(1) + 'M'
+    if(v > 1000) return (v/1000).toFixed(1) + 'K'
+    return v.toFixed(0)
+}
+const formatTime = (t) => t || '-'
 
 onMounted(() => {
   nextTick(() => {
     initChart()
     fetchData()
-    fetchSidebarData()
-    refreshTimer = setInterval(fetchSidebarData, 30000)
   })
-})
-
-onUnmounted(() => { 
-  if (refreshTimer) clearInterval(refreshTimer) 
 })
 </script>
 
 <style lang="scss" scoped>
 .page-container {
-  padding: 0 24px 24px 20px;
-  max-width: 100%;
-}
-
-.main-layout {
-  display: flex;
-  gap: 20px;
-  align-items: stretch; /* 保证左右高度一致 */
-}
-
-.left-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.right-sidebar {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-.full-height-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: #1F2937;
 }
 
 .card {
-  padding: 20px;
   background: #ffffff;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #E5E7EB;
 }
 
-.sidebar-section {
-  flex: 1;
+/* Ticker Header */
+.ticker-header {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.sidebar-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  .sidebar-title { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
-  .more-link { font-size: 12px; color: var(--color-accent); cursor: pointer; &:hover { text-decoration: underline; } }
-}
-
-.asset-list {
-  overflow-y: auto;
-  flex: 1;
-  .asset-item {
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  gap: 40px;
+  
+  .asset-info {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    border-radius: var(--radius-md);
-    transition: 0.2s;
-    cursor: pointer;
-    &:hover { background: var(--color-bg-primary); transform: translateX(-4px); }
+    gap: 12px;
+    min-width: 180px;
     
-    .asset-main {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      .asset-logo { width: 28px; height: 28px; }
-      .asset-icon { 
-        width: 28px; height: 28px; background: #f0fdf4; color: #10b981; 
-        display: flex; align-items: center; justify-content: center; 
-        border-radius: 50%; font-weight: 800; font-size: 12px;
-        &.rank-1 { background: #fef3c7; color: #d97706; }
-        &.rank-2 { background: #f3f4f6; color: #4b5563; }
-      }
-      .asset-meta {
-        display: flex; flex-direction: column;
-        .pair-name { font-weight: 600; font-size: 13px; }
-        .strategy-tag { font-size: 11px; color: var(--color-text-tertiary); }
-      }
+    .asset-icon img { width: 44px; height: 44px; }
+    .asset-names {
+       display: flex;
+       flex-direction: column;
+       .asset-symbol { font-size: 18px; font-weight: 700; line-height: 1.2; }
+       .asset-name { font-size: 13px; color: #6B7280; }
     }
-    .asset-stats {
-      text-align: right;
-      .current-price { font-family: monospace; font-weight: 700; font-size: 13px; }
-      .profit-tag { font-size: 11px; color: var(--color-text-tertiary); }
-    }
+  }
+  
+  .ticker-stats {
+     display: flex;
+     gap: 20px;
+     flex: 1;
+     
+     .stat-card {
+        background: #F9FAFB;
+        border-radius: 6px;
+        padding: 8px 16px;
+        min-width: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        
+        &.highlight {
+            background: #EEF2FF;
+            border: 1px solid #C7D2FE;
+        }
+
+        .stat-label { font-size: 11px; color: #6B7280; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 16px; font-weight: 700; font-family: 'Roboto Mono', monospace; display: flex; align-items: center; gap: 8px; }
+        
+        .change-badge {
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: #fff;
+            &.bg-green { background: #10B981; }
+            &.bg-red { background: #EF4444; }
+        }
+
+        .stat-main {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            .spread-percent { font-size: 18px; font-weight: 800; font-family: 'Roboto Mono', monospace; }
+            .spread-value { font-size: 12px; color: #6B7280; }
+        }
+        
+        .arb-signal {
+            margin-top: 4px;
+            .signal-tag {
+                font-size: 10px;
+                color: #4F46E5;
+                font-weight: 700;
+                background: #E0E7FF;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+        }
+     }
   }
 }
 
-.terminal-panel {
-  margin-top: 24px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden;
-  .panel-header {
-    display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: #f8fafc; border-bottom: 1px solid var(--color-border);
-    .tab-item { padding: 12px 20px; font-size: 13px; color: var(--color-accent); border-bottom: 2px solid var(--color-accent); font-weight: 600; }
-  }
-  .panel-body { padding: 10px; .terminal-table { width: 100%; border-collapse: collapse; th { text-align: left; padding: 12px; color: var(--color-text-tertiary); font-size: 12px; } td { padding: 12px; border-bottom: 1px solid var(--color-bg-primary); font-size: 13px; } } }
-}
-
+.text-binance { color: #10B981; }
+.text-uniswap { color: #3B82F6; }
 .text-up { color: #10B981; }
 .text-down { color: #EF4444; }
-.scrollbar-custom::-webkit-scrollbar { width: 4px; }
-.scrollbar-custom::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-.sidebar-footer { padding-top: 15px; .btn { width: 100%; padding: 10px; } }
+.text-neutral { color: #6B7280; }
+
+/* Main Grid */
+.main-layout {
+  display: flex;
+  gap: 20px;
+  
+  .left-section { flex: 1; min-width: 0; }
+  .right-section { width: 320px; flex-shrink: 0; }
+}
+
+/* Chart Card */
+.chart-card {
+  padding: 20px;
+  
+  .chart-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-bottom: 16px;
+     
+     .chart-tabs {
+        display: flex;
+        gap: 20px;
+        .tab-item {
+           font-size: 14px;
+           font-weight: 600;
+           color: #6B7280;
+           cursor: pointer;
+           &.active { color: #111827; border-bottom: 2px solid #111827; }
+        }
+     }
+     
+     .time-controls {
+        display: flex;
+        gap: 4px;
+        .time-btn {
+           font-size: 12px;
+           padding: 2px 8px;
+           border-radius: 4px;
+           cursor: pointer;
+           color: #6B7280;
+           &:hover { background: #F3F4F6; }
+           &.active { background: #F3F4F6; color: #111827; font-weight: 600; }
+        }
+     }
+  }
+  
+  .chart-controls-footer {
+     margin-top: 16px;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     padding-top: 12px;
+     border-top: 1px solid #F3F4F6;
+     
+     .nav-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        .date-range { font-size: 13px; font-weight: 500; font-family: monospace; }
+     }
+  }
+}
+
+/* Order Book */
+.order-book-card {
+   height: 650px;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+   
+   .card-header {
+      padding: 16px;
+      border-bottom: 1px solid #E5E7EB;
+      .title { margin: 0; font-size: 15px; font-weight: 600; }
+   }
+   
+   .order-book-header {
+      display: flex;
+      padding: 8px 16px;
+      background: #F9FAFB;
+      font-size: 10px;
+      color: #9CA3AF;
+      font-weight: 600;
+      text-transform: uppercase;
+      
+      .col { flex: 1; }
+   }
+   
+   .order-book-list {
+      flex: 1;
+      overflow-y: auto;
+      
+      .order-row {
+         display: flex;
+         padding: 6px 16px;
+         font-size: 12px;
+         cursor: pointer;
+         font-family: 'Roboto Mono', monospace;
+         
+         &:hover { background: #F3F4F6; }
+         &.selected { background: #EEF2FF; }
+         
+         .col { flex: 1; }
+         .price-col { font-weight: 600; }
+         .spread-col { color: #6B7280; }
+      }
+   }
+   
+   .order-stats {
+      padding: 16px;
+      background: #F9FAFB;
+      border-top: 1px solid #E5E7EB;
+      
+      .stat-row {
+         display: flex;
+         justify-content: space-between;
+         font-size: 12px;
+         margin-bottom: 6px;
+         color: #4B5563;
+         .mono { font-family: 'Roboto Mono', monospace; font-weight: 600; color: #111827; }
+         .contrast { color: #3B82F6; }
+      }
+      .stat-divider { height: 1px; background: #E5E7EB; margin: 8px 0; }
+      .arb-opportunity {
+         margin-top: 8px;
+         background: #ECFDF5;
+         color: #047857;
+         font-size: 11px;
+         font-weight: 600;
+         padding: 6px;
+         text-align: center;
+         border-radius: 4px;
+      }
+   }
+}
+
+.text-right { text-align: right; }
 </style>
