@@ -74,33 +74,33 @@
           <div class="compact-table">
             <div class="table-header">
               <div class="col">#</div>
-              <div class="col">{{ t('dashboard.coin') }}</div>
+              <div class="col">Pair</div>
               <div class="col">Profit (USDT)</div>
               <div class="col">Price Diff</div>
             </div>
             <div 
-              v-for="(coin, index) in topMovers.slice(0, 4)" 
-              :key="coin.symbol"
+              v-for="(coin, index) in topMovers.slice(0, 5)" 
+              :key="index"
               class="table-row"
             >
               <div class="col">{{ index + 1 }}</div>
-              <div class="col coin-info">
-                <img :src="coin.icon" :alt="coin.name" class="coin-icon" />
-                <div>
-                  <div class="coin-name">{{ coin.name }}</div>
-                  <div class="coin-symbol">{{ coin.symbol }}</div>
+              <div class="col pair-info">
+                <div class="pair-group">
+                  <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="Binance" class="platform-logo-tiny" />
+                  <span class="action-label">{{ coin.direction === 0 ? 'Sell' : 'Buy' }}</span>
+                </div>
+                <span class="pair-arrow">→</span>
+                <div class="pair-group">
+                  <img src="https://cryptologos.cc/logos/uniswap-uni-logo.png" alt="Uniswap" class="platform-logo-tiny" />
+                  <span class="action-label">{{ coin.direction === 0 ? 'Buy' : 'Sell' }}</span>
                 </div>
               </div>
               <div class="col">
-                <div class="price">${{ coin.price }}</div>
+                <div class="price text-up">${{ coin.price }}</div>
               </div>
               <div class="col">
-                <span :class="coin.change >= 0 ? 'text-up' : 'text-down'">
-                  <el-icon class="change-icon">
-                    <CaretTop v-if="coin.change >= 0" />
-                    <CaretBottom v-else />
-                  </el-icon>
-                  {{ Math.abs(coin.change) }}%
+                <span :class="parseFloat(coin.change) >= 0 ? 'text-up' : 'text-down'">
+                  {{ parseFloat(coin.change) >= 0 ? '+' : '' }}${{ coin.change }}
                 </span>
               </div>
             </div>
@@ -188,7 +188,7 @@
                 </span>
               </div>
               <div class="col actions">
-                <button class="btn-buy" @click="$router.push('/arbitrage-analysis')">Analyze</button>
+                <button class="btn-buy" @click="analyzeOpportunity(coin)">Analyze</button>
               </div>
             </div>
           </div>
@@ -261,6 +261,7 @@
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { api } from '@/api'
 import { store } from '@/store'
@@ -283,6 +284,7 @@ import {
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
+const router = useRouter()
 
 // 数据
 const walletBalance = ref(0) // Total Volume (ETH)
@@ -380,7 +382,8 @@ const fetchDashboardData = async () => {
       price: item.potential_profit_usdt.toFixed(2), // Show profit as price
       change: item.price_diff.toFixed(2), // Show price diff as change
       icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=029',
-      time: item.time
+      time: item.time,
+      direction: item.direction
     }))
     
     // 4. Fetch Recent Arbitrage Opportunities (as Watchlist)
@@ -395,7 +398,13 @@ const fetchDashboardData = async () => {
       time: item.time,
       uniswap_price: item.uniswap_price,
       binance_price: item.binance_price,
-      eth_volume: item.eth_volume_uniswap
+      eth_volume: item.eth_volume_uniswap,
+      trade_id: item.trade_id,
+      direction: item.direction,
+      price_diff_percent: item.price_diff_percent,
+      profit_rate: item.profit_rate,
+      score: item.score,
+      strategy: item.strategy
     }))
     
   } catch (error) {
@@ -404,6 +413,15 @@ const fetchDashboardData = async () => {
     loading.value = false
     loadingCount.value--
   }
+}
+
+// 分析套利机会
+const analyzeOpportunity = (opportunity) => {
+  // 跳转到套利分析页面，并通过query参数传递trade_id
+  router.push({
+    path: '/arbitrage-analysis',
+    query: { trade_id: opportunity.trade_id }
+  })
 }
 
 // 初始化图表
@@ -715,6 +733,14 @@ const handleExportStatsCSV = () => {
 .top-movers {
   grid-column: 1;
   grid-row: 2;
+  
+  // 只调整top-movers的表格行高，使其与watchlist对齐
+  .compact-table {
+    .table-row {
+      padding: 9px 4px; // 略微降低垂直padding
+      min-height: 50px; // 降低最小高度
+    }
+  }
 }
 
 // 右侧上部 chart-card
@@ -902,7 +928,7 @@ const handleExportStatsCSV = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px; // 统一为16px
   
   .section-title {
     font-size: 16px;
@@ -979,6 +1005,69 @@ const handleExportStatsCSV = () => {
     .coin-symbol {
       color: #999;
       font-size: 10px;
+    }
+  }
+  
+  .pair-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    
+    .pair-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      
+      .platform-logo-tiny {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+      }
+      
+      .action-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: #666;
+      }
+    }
+    
+    .pair-arrow {
+      color: #999;
+      font-size: 12px;
+      margin: 0 2px;
+    }
+  }
+  
+  .strategy-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    .strategy-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      .platform-logo-small {
+        width: 16px;
+        height: 16px;
+        object-fit: contain;
+      }
+      
+      .action-text {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        
+        &.buy-text {
+          color: #10b981;
+        }
+        
+        &.sell-text {
+          color: #ef4444;
+        }
+      }
     }
   }
   

@@ -175,7 +175,12 @@ const messages = {
       priceVolatilityAnalysis: '价格波动分析',
       priceVolatilityDesc: '每小时价格变化百分比',
       binance: 'Binance',
-      uniswap: 'Uniswap'
+      uniswap: 'Uniswap',
+      scoreFormula: '流动性评分计算公式',
+      avgScore: '平均分数',
+      maxScore: '最大值分数',
+      maxVolume: '最大交易量',
+      totalScore: '总分'
     },
     arbitrageAnalysis: {
       totalOpportunities: '总机会数',
@@ -189,7 +194,12 @@ const messages = {
       volumeEth: '交易量 (ETH)',
       profitUsdt: '收益 (USDT)',
       triangularArbitrage: '三角套利',
-      profitRange: '收益范围'
+      profitRange: '收益范围',
+      scoreFormula: '评分计算公式',
+      priceDiffDesc: '|价格B - 价格U| (USD)',
+      avgVolumeDesc: '(交易量U + 交易量B) / 2',
+      liquidityDesc: '流动性估计值 / 1000',
+      gasFeeDesc: 'Gas费用 (USD)'
     }
   },
   en: {
@@ -350,7 +360,12 @@ const messages = {
       priceVolatilityAnalysis: 'Price Volatility Analysis',
       priceVolatilityDesc: 'Hourly price change percentage',
       binance: 'Binance',
-      uniswap: 'Uniswap'
+      uniswap: 'Uniswap',
+      scoreFormula: 'Liquidity Score Formula',
+      avgScore: 'Avg. Score',
+      maxScore: 'Max Score',
+      maxVolume: 'Max Volume',
+      totalScore: 'Total Score'
     },
     arbitrageAnalysis: {
       totalOpportunities: 'Total Opportunities',
@@ -364,7 +379,12 @@ const messages = {
       volumeEth: 'Volume (ETH)',
       profitUsdt: 'Profit (USDT)',
       triangularArbitrage: 'Triangular Arbitrage',
-      profitRange: 'Profit Range'
+      profitRange: 'Profit Range',
+      scoreFormula: 'Score Calculation Formula',
+      priceDiffDesc: '|Price_B - Price_U| (USD)',
+      avgVolumeDesc: '(Volume_U + Volume_B) / 2',
+      liquidityDesc: 'Liquidity Estimate / 1000',
+      gasFeeDesc: 'Gas Fee (USD)'
     }
   }
 }

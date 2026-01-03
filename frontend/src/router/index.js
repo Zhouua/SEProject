@@ -35,11 +35,6 @@ const routes = [
         path: 'volume-comparison',
         name: 'VolumeComparison',
         component: () => import('@/views/VolumeComparison.vue')
-      },
-      {
-        path: 'liquidity-analysis',
-        name: 'LiquidityAnalysis',
-        component: () => import('@/views/LiquidityAnalysis.vue')
       }
     ]
   },

@@ -33,8 +33,7 @@ import {
   LayoutGrid, 
   TrendingUp, 
   BarChart2, 
-  Activity, 
-  Droplets,
+  Activity,
   HelpCircle,
   Settings,
   Hexagon
@@ -47,8 +46,7 @@ const menuItems = [
   { nameKey: 'sidebar.dashboard', path: '/dashboard', icon: LayoutGrid },
   { nameKey: 'sidebar.priceComparison.title', path: '/price-comparison', icon: TrendingUp },
   { nameKey: 'sidebar.arbitrage.title', path: '/arbitrage-analysis', icon: BarChart2 },
-  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Activity },
-  { nameKey: 'sidebar.liquidityAnalysis', path: '/liquidity-analysis', icon: Droplets },
+  { nameKey: 'sidebar.volumeComparison', path: '/volume-comparison', icon: Activity }
 ]
 
 const isActive = (path) => {

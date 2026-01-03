@@ -64,31 +64,96 @@
         style="width: 100%" 
         v-loading="tableLoading"
         class="custom-table"
+        @sort-change="handleSortChange"
       >
         <el-table-column prop="trade_id" label="TRADE ID" width="120" align="center">
           <template #default="scope">
             <span class="trade-id-tag">#{{ scope.row.trade_id }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="time" label="TIME" width="180">
+        <el-table-column prop="time" label="TIME" min-width="180" align="center">
           <template #default="scope">
             <span class="text-secondary font-mono">{{ formatTime(scope.row.time) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="strategy" label="STRATEGY" min-width="200">
-           <template #default="scope">
-            <span class="strategy-tag" :class="getStrategyClass(scope.row.direction)">{{ scope.row.strategy || 'Triangular Arbitrage' }}</span>
-          </template>
+        <el-table-column label="STRATEGY" align="center">
+          <el-table-column label="Binance" width="140" align="center">
+            <template #header>
+              <div class="platform-header">
+                <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="Binance" class="platform-logo" />
+                <span>Binance</span>
+              </div>
+            </template>
+            <template #default="scope">
+              <span class="action-badge" :class="scope.row.direction === 0 ? 'sell' : 'buy'">
+                {{ scope.row.direction === 0 ? 'Sell' : 'Buy' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Uniswap" width="140" align="center">
+            <template #header>
+              <div class="platform-header">
+                <img src="https://cryptologos.cc/logos/uniswap-uni-logo.png" alt="Uniswap" class="platform-logo" />
+                <span>Uniswap</span>
+              </div>
+            </template>
+            <template #default="scope">
+              <span class="action-badge" :class="scope.row.direction === 0 ? 'buy' : 'sell'">
+                {{ scope.row.direction === 0 ? 'Buy' : 'Sell' }}
+              </span>
+            </template>
+          </el-table-column>
         </el-table-column>
-        <el-table-column prop="potential_profit_usdt" label="PROFIT (USDT)" width="150" align="right" sortable>
+        <el-table-column prop="potential_profit_usdt" label="PROFIT (USDT)" min-width="150" align="center" sortable="custom">
           <template #default="scope">
             <span class="text-up font-medium font-mono">+${{ scope.row.potential_profit_usdt?.toFixed(2) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="score" label="SCORE" min-width="120" align="center" sortable="custom">
+          <template #header>
+            <el-tooltip 
+              effect="dark" 
+              placement="top"
+              popper-class="score-tooltip"
+            >
+              <template #content>
+                <div class="tooltip-content">
+                  <div class="tooltip-title">{{ t('arbitrageAnalysis.scoreFormula') }}</div>
+                  <div class="formula-item">
+                    <span class="formula-value" style="width: 100%;">Score = (W₁ × Price_Diff + W₂ × Volume + W₃ × Liquidity + W₄ × Gas_Fee) / 40</span>
+                  </div>
+                  <div class="formula-divider"></div>
+                  <div class="formula-item">
+                    <span class="formula-label">Price_Diff:</span>
+                    <span class="formula-value">{{ t('arbitrageAnalysis.priceDiffDesc') }}</span>
+                  </div>
+                  <div class="formula-item">
+                    <span class="formula-label">Volume:</span>
+                    <span class="formula-value">{{ t('arbitrageAnalysis.avgVolumeDesc') }}</span>
+                  </div>
+                  <div class="formula-item">
+                    <span class="formula-label">Liquidity:</span>
+                    <span class="formula-value">{{ t('arbitrageAnalysis.liquidityDesc') }}</span>
+                  </div>
+                  <div class="formula-item">
+                    <span class="formula-label">Gas_Fee:</span>
+                    <span class="formula-value">{{ t('arbitrageAnalysis.gasFeeDesc') }}</span>
+                  </div>
+                </div>
+              </template>
+              <span style="cursor: help;">SCORE</span>
+            </el-tooltip>
+          </template>
+          <template #default="scope">
+            <span class="score-badge" :class="getScoreClass(scope.row.score)">
+              {{ scope.row.score?.toFixed(2) }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="DETAILS" width="120" align="center">
           <template #default="scope">
             <el-button type="primary" size="small" @click="showDetails(scope.row)" class="details-btn">
-              <el-icon><View /></el-icon>
+              <el-icon><Eye /></el-icon>
               View
             </el-button>
           </template>
@@ -121,7 +186,7 @@
         <!-- 基础信息 -->
         <div class="detail-section">
           <h4 class="section-title">
-            <el-icon><Document /></el-icon>
+            <el-icon><FileText /></el-icon>
             Basic Information
           </h4>
           <div class="detail-grid">
@@ -211,14 +276,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 import { api } from '@/api'
-import { Activity, DollarSign, TrendingUp, View, Download, Document } from 'lucide-vue-next'
+import { Activity, DollarSign, TrendingUp, Eye, Download, FileText } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
+const route = useRoute()
 const chartRef = ref(null)
 const pieChartRef = ref(null)
 let chart = null
@@ -231,6 +298,7 @@ const pageSize = ref(20)
 const dailyStats = ref([])
 const detailsVisible = ref(false)
 const selectedOpportunity = ref(null)
+const sortBy = ref('profit_desc') // 添加排序状态
 
 const disabledDate = (time) => {
   const minDate = new Date('2025-09-01T00:00:00')
@@ -280,14 +348,32 @@ const fetchTableData = async () => {
   try {
     const [start, end] = dateRange.value
     const offset = (currentPage.value - 1) * pageSize.value
-    const response = await api.getArbitrageOpportunities(start, end, 0, pageSize.value, offset)
+    const response = await api.getArbitrageOpportunities(start, end, 0, pageSize.value, offset, sortBy.value)
     opportunities.value = response.data || []
     totalOpportunities.value = dailyStats.value.reduce((sum, item) => sum + item.count, 0)
+    
+    // 数据加载完成后，检查是否需要打开详情
+    checkAndShowOpportunityFromRoute()
   } catch (error) {
     console.error('Error fetching table data:', error)
   } finally {
     tableLoading.value = false
   }
+}
+
+const handleSortChange = ({ prop, order }) => {
+  if (!order) {
+    // 取消排序，恢复默认
+    sortBy.value = 'profit_desc'
+  } else if (prop === 'potential_profit_usdt') {
+    sortBy.value = order === 'ascending' ? 'profit_asc' : 'profit_desc'
+  } else if (prop === 'score') {
+    sortBy.value = order === 'ascending' ? 'score_asc' : 'score_desc'
+  }
+  
+  // 重置到第一页并重新获取数据
+  currentPage.value = 1
+  fetchTableData()
 }
 
 const handlePageChange = (page) => {
@@ -309,6 +395,13 @@ const formatTime = (timeStr) => {
 
 const getStrategyClass = (direction) => {
   return direction === 0 ? 'strategy-u2b' : 'strategy-b2u'
+}
+
+const getScoreClass = (score) => {
+  if (score >= 80) return 'score-high'      // 80-100: 高分
+  if (score >= 60) return 'score-medium'   // 60-79: 中等
+  if (score >= 40) return 'score-low'      // 40-59: 一般
+  return 'score-very-low'                   // 0-39: 较低
 }
 
 const showDetails = (row) => {
@@ -437,6 +530,41 @@ onMounted(() => {
     fetchData()
   })
 })
+
+// 检查路由参数并显示对应的套利机会详情
+const checkAndShowOpportunityFromRoute = () => {
+  const tradeId = route.query.trade_id
+  if (!tradeId) return
+  
+  const targetTradeId = parseInt(tradeId)
+  
+  // 先在当前页数据中查找
+  const opportunity = opportunities.value.find(item => item.trade_id === targetTradeId)
+  if (opportunity) {
+    showDetails(opportunity)
+  } else {
+    // 如果当前页没有，从所有数据中查找
+    findAndShowOpportunity(targetTradeId)
+  }
+}
+
+// 从所有数据中查找并显示套利机会详情
+const findAndShowOpportunity = async (tradeId) => {
+  try {
+    const [start, end] = dateRange.value
+    // 获取更多数据来查找目标trade_id
+    const response = await api.getArbitrageOpportunities(start, end, 0, 10000, 0, sortBy.value)
+    const opportunity = response.data.find(item => item.trade_id === tradeId)
+    if (opportunity) {
+      showDetails(opportunity)
+    } else {
+      ElMessage.warning('未找到对应的套利机会')
+    }
+  } catch (error) {
+    console.error('Error finding opportunity:', error)
+    ElMessage.error('查找套利机会失败')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -528,26 +656,29 @@ onMounted(() => {
   }
 }
 
-.strategy-tag {
-  background: var(--color-bg-tertiary);
-  padding: 6px 12px;
-  border-radius: 6px;
+.action-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 14px;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-}
-
-.strategy-u2b {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-}
-
-.strategy-b2u {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  border: none;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  text-align: center;
+  
+  &.buy {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  }
+  
+  &.sell {
+    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+  }
 }
 
 .trade-id-tag {
@@ -562,10 +693,45 @@ onMounted(() => {
 }
 
 .details-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   font-size: 12px;
+  margin: 0 auto;
+}
+
+.score-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  
+  &.score-high {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+  }
+  
+  &.score-medium {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  }
+  
+  &.score-low {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  }
+  
+  &.score-very-low {
+    background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
+  }
 }
 
 .pagination-container {
@@ -587,11 +753,28 @@ onMounted(() => {
 :deep(.el-table th.el-table__cell) {
   background-color: var(--color-bg-primary);
   color: var(--color-text-tertiary);
-  font-weight: 600;
+  font-weight: 800;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 12px 0;
+}
+
+.platform-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  
+  span {
+    font-weight: 700;
+  }
+}
+
+.platform-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 :deep(.el-table td.el-table__cell) {
@@ -711,6 +894,47 @@ onMounted(() => {
           color: #667eea;
         }
       }
+    }
+  }
+}
+
+// Tooltip样式
+:deep(.score-tooltip) {
+  max-width: 400px;
+  
+  .tooltip-content {
+    padding: 4px;
+    
+    .tooltip-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    
+    .formula-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+      
+      .formula-label {
+        color: #E5E7EB;
+        margin-right: 12px;
+        white-space: nowrap;
+      }
+      
+      .formula-value {
+        color: #fff;
+        font-family: 'Monaco', 'Courier New', monospace;
+        text-align: right;
+      }
+    }
+    
+    .formula-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
+      margin: 8px 0;
     }
   }
 }
