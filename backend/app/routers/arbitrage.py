@@ -61,6 +61,8 @@ async def get_arbitrage_opportunities(
         query = query.order_by(ArbitrageData.time_align.asc())
     elif sort_by == "score_desc":
         query = query.order_by(ArbitrageData.score.desc())
+    elif sort_by == "score_asc":
+        query = query.order_by(ArbitrageData.score.asc())
     elif sort_by == "profit_rate_desc":
         query = query.order_by(ArbitrageData.profit_rate.desc())
     else:
