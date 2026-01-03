@@ -220,6 +220,29 @@ const messages = {
       avgVolumeDesc: '(交易量U + 交易量B) / 2',
       liquidityDesc: '流动性估计值 / 1000',
       gasFeeDesc: 'Gas费用 (USD)'
+    },
+    priceComparison: {
+      loadingMarketData: '加载市场数据中...',
+      binancePrice: 'Binance 价格',
+      uniswapPrice: 'Uniswap 价格',
+      arbitrageSpread: '套利价差',
+      volume24h: '24小时交易量 (USDT)',
+      priceChart: '价格图表',
+      depth: '深度',
+      orderBook: '订单簿',
+      priceUsdt: '价格(USDT)',
+      volumeUsdt: '交易量(USDT)',
+      spread: '价差',
+      binance: 'Binance',
+      uniswap: 'Uniswap',
+      compareBoth: '对比两者',
+      selectedTime: '选中时间',
+      arbOpportunity: '检测到套利机会',
+      buyUniswapSellBinance: '买入 Uniswap → 卖出 Binance',
+      buyBinanceSellUniswap: '买入 Binance → 卖出 Uniswap',
+      binanceData: 'Binance 数据',
+      uniswapData: 'Uniswap 数据',
+      bitcoinComparison: '比特币 (对比)'
     }
   },
   en: {
@@ -441,6 +464,29 @@ const messages = {
       avgVolumeDesc: '(Volume_U + Volume_B) / 2',
       liquidityDesc: 'Liquidity Estimate / 1000',
       gasFeeDesc: 'Gas Fee (USD)'
+    },
+    priceComparison: {
+      loadingMarketData: 'Loading Market Data...',
+      binancePrice: 'Binance Price',
+      uniswapPrice: 'Uniswap Price',
+      arbitrageSpread: 'Arbitrage Spread',
+      volume24h: '24h Volume (USDT)',
+      priceChart: 'Price Chart',
+      depth: 'Depth',
+      orderBook: 'Order Book',
+      priceUsdt: 'Price(USDT)',
+      volumeUsdt: 'Vol(USDT)',
+      spread: 'Spread',
+      binance: 'Binance',
+      uniswap: 'Uniswap',
+      compareBoth: 'Compare Both',
+      selectedTime: 'Selected Time',
+      arbOpportunity: 'Arbitrage Opportunity Detected',
+      buyUniswapSellBinance: 'Buy Uniswap → Sell Binance',
+      buyBinanceSellUniswap: 'Buy Binance → Sell Uniswap',
+      binanceData: 'Binance Data',
+      uniswapData: 'Uniswap Data',
+      bitcoinComparison: 'Bitcoin (Comparison)'
     }
   }
 }

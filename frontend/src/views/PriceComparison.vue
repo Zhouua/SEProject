@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <TruckLoader :show="loading" text="Loading Market Data..." />
+    <TruckLoader :show="loading" :text="t('priceComparison.loadingMarketData')" />
     
     <!-- Ticker Header -->
     <div class="ticker-header card">
@@ -15,47 +15,52 @@
       </div>
       
       <div class="ticker-stats">
-        
         <!-- Binance Stat -->
         <div class="stat-card" v-if="exchangeFilter !== 'uniswap'">
-          <div class="stat-label">Binance Price</div>
-          <div class="stat-value text-binance">
-            ${{ formatPrice(latestData?.binance?.close) }}
-            <span class="change-badge" :class="getChange(latestData?.binance) >= 0 ? 'bg-green' : 'bg-red'">
-               {{ getChange(latestData?.binance) }}%
+          <div class="stat-label">{{ t('priceComparison.binancePrice') }}</div>
+          <div class="stat-value text-binance" v-if="latestData && latestData.binance">
+            ${{ formatPrice(latestData.binance.close) }}
+            <span class="change-badge" :class="getChange(latestData.binance) >= 0 ? 'bg-green' : 'bg-red'">
+               {{ getChange(latestData.binance) }}%
             </span>
           </div>
+          <div class="stat-value text-binance" v-else>-</div>
         </div>
 
         <!-- Uniswap Stat -->
         <div class="stat-card" v-if="exchangeFilter !== 'binance'">
-          <div class="stat-label">Uniswap Price</div>
-          <div class="stat-value text-uniswap">
-            ${{ formatPrice(latestData?.uniswap?.close) }}
-            <span class="change-badge" :class="getChange(latestData?.uniswap) >= 0 ? 'bg-green' : 'bg-red'">
-               {{ getChange(latestData?.uniswap) }}%
+          <div class="stat-label">{{ t('priceComparison.uniswapPrice') }}</div>
+          <div class="stat-value text-uniswap" v-if="latestData && latestData.uniswap">
+            ${{ formatPrice(latestData.uniswap.close) }}
+            <span class="change-badge" :class="getChange(latestData.uniswap) >= 0 ? 'bg-green' : 'bg-red'">
+               {{ getChange(latestData.uniswap) }}%
             </span>
           </div>
+          <div class="stat-value text-uniswap" v-else>-</div>
         </div>
 
         <!-- Spread / Arb Signal -->
         <div class="stat-card highlight" v-if="exchangeFilter === 'both'">
-          <div class="stat-label">Arbitrage Spread</div>
-          <div class="stat-main">
-             <span class="spread-percent" :class="latestSpreadPercent > 0.5 ? 'text-up' : 'text-neutral'">
+          <div class="stat-label">{{ t('priceComparison.arbitrageSpread') }}</div>
+          <div class="stat-main" v-if="latestData && latestData.binance && latestData.uniswap">
+             <span class="spread-percent" :class="parseFloat(latestSpreadPercent) > 0.5 ? 'text-up' : 'text-neutral'">
                 {{ latestSpreadPercent }}%
              </span>
              <span class="spread-value">(${{ formatPrice(Math.abs(latestSpread)) }})</span>
           </div>
-          <div class="arb-signal" v-if="Math.abs(latestSpreadPercent) > 0.1">
+          <div class="stat-value" v-else>-</div>
+          <div class="arb-signal" v-if="latestData && Math.abs(parseFloat(latestSpreadPercent)) > 0.1">
              <span class="signal-tag">{{ arbDirection }}</span>
           </div>
         </div>
 
         <!-- Volume -->
         <div class="stat-card">
-          <div class="stat-label">24h Volume (USDT)</div>
-          <div class="stat-value">{{ formatVolume(latestData?.binance?.usdt_volume) }}</div>
+          <div class="stat-label">{{ t('priceComparison.volume24h') }}</div>
+          <div class="stat-value" v-if="latestData && latestData.binance">
+            {{ formatVolume(latestData.binance.usdt_volume) }}
+          </div>
+          <div class="stat-value" v-else>-</div>
         </div>
       </div>
     </div>
@@ -67,8 +72,8 @@
         <div class="card chart-card">
           <div class="chart-header">
              <div class="chart-tabs">
-               <div class="tab-item active">Price Chart</div>
-               <div class="tab-item">Depth</div>
+               <div class="tab-item active">{{ t('priceComparison.priceChart') }}</div>
+               <div class="tab-item">{{ t('priceComparison.depth') }}</div>
              </div>
              
              <div class="time-controls">
@@ -90,9 +95,9 @@
           
           <div class="chart-controls-footer">
              <el-radio-group v-model="exchangeFilter" size="small" @change="updateChart">
-                <el-radio-button label="binance">Binance</el-radio-button>
-                <el-radio-button label="uniswap">Uniswap</el-radio-button>
-                <el-radio-button label="both">Compare Both</el-radio-button>
+                <el-radio-button label="binance">{{ t('priceComparison.binance') }}</el-radio-button>
+                <el-radio-button label="uniswap">{{ t('priceComparison.uniswap') }}</el-radio-button>
+                <el-radio-button label="both">{{ t('priceComparison.compareBoth') }}</el-radio-button>
               </el-radio-group>
               
               <div class="nav-controls">
@@ -108,13 +113,13 @@
       <div class="right-section">
         <div class="card order-book-card">
           <div class="card-header">
-            <h3 class="title">Order Book</h3>
+            <h3 class="title">{{ t('priceComparison.orderBook') }}</h3>
           </div>
           
           <div class="order-book-header">
-            <div class="col">Price(USDT)</div>
-            <div class="col text-right">Vol(USDT)</div>
-            <div class="col text-right">Spread</div>
+            <div class="col">{{ t('priceComparison.priceUsdt') }}</div>
+            <div class="col text-right">{{ t('priceComparison.volumeUsdt') }}</div>
+            <div class="col text-right">{{ t('priceComparison.spread') }}</div>
           </div>
           
           <div class="order-book-list" ref="orderBookRef">
@@ -140,20 +145,20 @@
           
           <div class="order-stats" v-if="selectedData">
              <div class="stat-row">
-                <span>Selected Time</span>
+                <span>{{ t('priceComparison.selectedTime') }}</span>
                 <span class="mono">{{ formatTime(selectedData.time) }}</span>
              </div>
              <div class="stat-divider"></div>
              <div class="stat-row" v-if="exchangeFilter !== 'uniswap'">
-                <span>Binance</span>
+                <span>{{ t('priceComparison.binance') }}</span>
                 <span class="mono">${{ formatPrice(selectedData.binance.close) }}</span>
              </div>
              <div class="stat-row" v-if="exchangeFilter !== 'binance'">
-                <span>Uniswap</span>
+                <span>{{ t('priceComparison.uniswap') }}</span>
                 <span class="mono contrast">${{ formatPrice(selectedData.uniswap.close) }}</span>
              </div>
              <div class="arb-opportunity" v-if="exchangeFilter === 'both' && Math.abs(selectedData.binance.close - selectedData.uniswap.close) > 10">
-                Arbitrage Opportunity Detected
+                {{ t('priceComparison.arbOpportunity') }}
              </div>
           </div>
         </div>
@@ -164,19 +169,22 @@
 
 <script setup>
 import { ref, onMounted, nextTick, watch, onUnmounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { api } from '@/api'
 import TruckLoader from '@/components/TruckLoader.vue'
+
+const { t } = useI18n()
 
 const chartRef = ref(null)
 const orderBookRef = ref(null)
 let chart = null
 
 const loading = ref(false)
-const exchangeFilter = ref('both')
+const exchangeFilter = ref('binance')
 const selectedData = ref(null)
-let allRawData = []
+const allRawData = ref([])  // 改为响应式变量
 const interval = ref('4h')
 
 const currentStartIndex = ref(0)
@@ -187,62 +195,70 @@ const headerInfo = computed(() => {
   if (exchangeFilter.value === 'binance') {
     return {
       symbol: 'BNB/USDT',
-      name: 'Binance Data',
+      name: t('priceComparison.binanceData'),
       logo: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png'
     }
   } else if (exchangeFilter.value === 'uniswap') {
     return {
       symbol: 'UNI/USDT',
-      name: 'Uniswap Data',
+      name: t('priceComparison.uniswapData'),
       logo: 'https://cryptologos.cc/logos/uniswap-uni-logo.png'
     }
   } else {
     return {
       symbol: 'BTC/USDT',
-      name: 'Bitcoin (Comparison)',
+      name: t('priceComparison.bitcoinComparison'),
       logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png'
     }
   }
 })
 
-const latestData = computed(() => allRawData[allRawData.length - 1] || {})
+const latestData = computed(() => {
+  if (!allRawData.value || allRawData.value.length === 0) return null
+  return allRawData.value[allRawData.value.length - 1]
+})
+
 const latestSpread = computed(() => {
-    if(!latestData.value.binance) return 0
+    if(!latestData.value?.binance?.close || !latestData.value?.uniswap?.close) return 0
     return latestData.value.binance.close - latestData.value.uniswap.close
 })
+
 const latestSpreadPercent = computed(() => {
-    if(!latestData.value.binance) return '0.00'
-    return Math.abs(((latestSpread.value / latestData.value.binance.close) * 100)).toFixed(2)
+    if(!latestData.value?.binance?.close || !latestData.value?.uniswap?.close) return '0.00'
+    const spread = latestSpread.value
+    const percent = Math.abs((spread / latestData.value.binance.close) * 100)
+    return percent.toFixed(2)
 })
 
 const arbDirection = computed(() => {
     if (latestSpread.value > 0) {
-        return "Buy Uniswap → Sell Binance" // Binance is higher, so buy low (Uni) sell high (Bin)
+        return t('priceComparison.buyUniswapSellBinance') // Binance is higher, so buy low (Uni) sell high (Bin)
     } else {
-        return "Buy Binance → Sell Uniswap" // Uniswap is higher
+        return t('priceComparison.buyBinanceSellUniswap') // Uniswap is higher
     }
 })
 
 const getChange = (candle) => {
-    if(!candle) return '0.00'
+    if(!candle || !candle.open || !candle.close) return '0.00'
     // Simple calc: (Close - Open) / Open
-    return ((candle.close - candle.open) / candle.open * 100).toFixed(2)
+    const change = ((candle.close - candle.open) / candle.open * 100)
+    return change.toFixed(2)
 }
 
 const displayDateRange = computed(() => {
-  if (!allRawData.length) return '-'
+  if (!allRawData.value.length) return '-'
   const startIdx = currentStartIndex.value
-  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length) - 1
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.value.length) - 1
   if (endIdx < 0) return '-'
-  const startDate = allRawData[startIdx]?.time?.split(' ')[0] || '-'
-  const endDate = allRawData[endIdx]?.time?.split(' ')[0] || '-'
+  const startDate = allRawData.value[startIdx]?.time?.split(' ')[0] || '-'
+  const endDate = allRawData.value[endIdx]?.time?.split(' ')[0] || '-'
   return `${startDate} ~ ${endDate}`
 })
 
 const getCurrentWindowData = computed(() => {
   const startIdx = currentStartIndex.value
-  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
-  return allRawData.slice(startIdx, endIdx).reverse()
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.value.length)
+  return allRawData.value.slice(startIdx, endIdx).reverse()
 })
 
 const initChart = () => {
@@ -251,8 +267,8 @@ const initChart = () => {
     window.addEventListener('resize', () => chart.resize())
     chart.on('click', (params) => {
       const startIdx = currentStartIndex.value
-      const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
-      const windowData = allRawData.slice(startIdx, endIdx)
+      const endIdx = Math.min(startIdx + windowSize.value, allRawData.value.length)
+      const windowData = allRawData.value.slice(startIdx, endIdx)
       
       const clickedItem = windowData[params.dataIndex]
       if (clickedItem) {
@@ -272,8 +288,12 @@ const fetchData = async () => {
   try {
      // Using fixed range for demo
     const data = await api.getPriceCandles('2025-09-01 00:00:00', '2025-09-30 23:59:59', interval.value)
-    allRawData = data
-    currentStartIndex.value = Math.max(0, allRawData.length - windowSize.value) 
+    allRawData.value = data
+    console.log('数据加载完成:', allRawData.value.length, '条记录')
+    if (allRawData.value.length > 0) {
+      console.log('最新数据示例:', allRawData.value[allRawData.value.length - 1])
+    }
+    currentStartIndex.value = Math.max(0, allRawData.value.length - windowSize.value) 
     updateChart()
   } catch (error) { 
     console.error('Data Fetch Error:', error) 
@@ -283,11 +303,11 @@ const fetchData = async () => {
 }
 
 const updateChart = () => {
-  if (!chart || !allRawData.length) return
+  if (!chart || !allRawData.value.length) return
   
   const startIdx = currentStartIndex.value
-  const endIdx = Math.min(startIdx + windowSize.value, allRawData.length)
-  const windowData = allRawData.slice(startIdx, endIdx)
+  const endIdx = Math.min(startIdx + windowSize.value, allRawData.value.length)
+  const windowData = allRawData.value.slice(startIdx, endIdx)
   
   const dates = windowData.map(item => item.time)
   const binanceData = windowData.map(item => [item.binance.open, item.binance.close, item.binance.low, item.binance.high])
@@ -322,7 +342,7 @@ const updateChart = () => {
 const navigateDays = (days) => {
   const step = Math.ceil(days * 24 / 4)
   let newIndex = currentStartIndex.value + step
-  newIndex = Math.max(0, Math.min(newIndex, allRawData.length - windowSize.value))
+  newIndex = Math.max(0, Math.min(newIndex, allRawData.value.length - windowSize.value))
   currentStartIndex.value = newIndex
   updateChart()
 }
@@ -356,7 +376,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .page-container {
-  padding: 20px;
+  padding: 12px 20px 20px;
   max-width: 1600px;
   margin: 0 auto;
   font-family: 'Inter', sans-serif;
@@ -374,8 +394,8 @@ onMounted(() => {
 .ticker-header {
   display: flex;
   align-items: center;
-  padding: 16px 24px;
-  margin-bottom: 20px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
   gap: 40px;
   
   .asset-info {
